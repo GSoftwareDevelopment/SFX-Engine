@@ -27,7 +27,8 @@ var
    channels:array[0..0] of byte absolute SFX_CHANNELS_ADDR;
 
 procedure INIT_SFXEngine(); Assembler;
-procedure SFX_Start();
+procedure SFX_StartDLI();
+procedure SFX_StartVBL();
 procedure SFX_ChannelOff(channel:byte); Assembler;
 procedure SFX_Off(); Assembler;
 procedure SFX_Note(channel,note,SFXId:byte); Assembler;
@@ -41,7 +42,7 @@ var
    NMIEN:byte absolute $D40E;
    oldIntVec:pointer;
    IntMode:byte;
-   
+
 procedure INIT_SFXEngine; Assembler;
 asm
 sfx_engine_start
@@ -63,10 +64,10 @@ portb       = $d301
 
 .ifdef MAIN.@DEFINES.SFX_SWITCH_ROM
 .ifdef MAIN.@DEFINES.ROMOFF
-			lda portb
-			pha
-			lda #$FE
-			sta portb
+      lda portb
+      pha
+      lda #$FE
+      sta portb
 .endif
 .endif
 
@@ -74,8 +75,8 @@ portb       = $d301
 
 .ifdef MAIN.@DEFINES.SFX_SWITCH_ROM
 .ifdef MAIN.@DEFINES.ROMOFF
-			pla
-			sta portb
+      pla
+      sta portb
 .endif
 .endif
 
@@ -86,19 +87,16 @@ end;
 
 procedure SFX_tick_DLI(); Assembler; Interrupt;
 asm
-xitvbl      = $e462
-sysvbv      = $e45c
-wsync			= $d40a
 portb       = $d301
 
          phr
 
 .ifdef MAIN.@DEFINES.SFX_SWITCH_ROM
 .ifdef MAIN.@DEFINES.ROMOFF
-			lda portb
-			pha
-			lda #$FE
-			sta portb
+      lda portb
+      pha
+      lda #$FE
+      sta portb
 .endif
 .endif
 
@@ -106,17 +104,16 @@ portb       = $d301
 
 .ifdef MAIN.@DEFINES.SFX_SWITCH_ROM
 .ifdef MAIN.@DEFINES.ROMOFF
-			pla
-			sta portb
+      pla
+      sta portb
 .endif
 .endif
 
          plr
          rti
-         jmp xitvbl
 end;
 
-procedure SFX_StartDLI();
+procedure SFX_StartDLI;
 begin
    INIT_SFXEngine();
    NMIEN:=%00000000;
@@ -126,7 +123,7 @@ begin
    NMIEN:=%11000000;
 end;
 
-procedure SFX_StartVBL();
+procedure SFX_StartVBL;
 begin
    INIT_SFXEngine();
    NMIEN:=%00000000;
@@ -138,10 +135,10 @@ end;
 
 procedure SFX_ChannelOff; Assembler;
 asm
-	asl @
-	asl @
-	asl @
-	asl @
+  asl @
+  asl @
+  asl @
+  asl @
    tax
    clc
    jsr INIT_SFXEngine.SFX_OFF_CHANNEL
@@ -211,7 +208,10 @@ begin
    if oldIntVec<>nil then
    begin
       NMIEN:=%00000000;
-      SetIntVec(IntMode, oldIntVec);
+      Case IntMode of
+        iDLI: SetIntVec(iDLI, oldIntVec);
+        iVBL: SetIntVec(iVBL, oldIntVec);
+      end;
       NMIEN:=%01000000;
       oldIntVec:=nil;
    end;
