@@ -23,14 +23,14 @@ channel_set
          jmp end_player_tick
 
  .print "TAB PLAYBACK START: ", *
-         icl 'TABs.asm'
+         icl 'tabs/TABs.asm'
 
 end_player_tick
 .endif
 
  .print "SFX PLAYBACK START: ", *
 
-         icl 'SFXs.asm'
+         icl 'sfx/SFXs.asm'
 
 next_channel
          txa                                 ; shift offset to next channel

@@ -7,7 +7,6 @@
 {$DEFINE LFD_NLM_MOD}            // Low Frequency Divider & Note Level Modulation
 {$DEFINE MFD_MOD}                // Middle Frequency Divider modulator
 {$DEFINE HFD_MOD}                // High Frequency Divider modulator
-// {$DEFINE USE_ALL_MODULATORS}
 
 {$DEFINE SFX_PLAYBACK}           // Enable SONG/TAB playback support
 
@@ -24,5 +23,3 @@ NOTE_TABLE_ADDR   = NOTE_TABLE_PAGE*$100; // = NOTE_TABLE_ADDR                  
 
 SFX_TABLE_ADDR    = $CE00;                // list for SFX definitions
 TAB_TABLE_ADDR    = SFX_TABLE_ADDR+$0080; // list for TAB definitions
-
-
