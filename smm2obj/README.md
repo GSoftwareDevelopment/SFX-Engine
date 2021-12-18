@@ -26,7 +26,7 @@ First, the names must be given: the input file `source_file_name` (in **SFX Musi
 
 ### Conversion configuration
 
-#### `-org:address` or `-o:address`
+#### `-org:address` or `-Ao:address`
 
 Specifies the initial compilation address. Default is $A000.
 
