@@ -5,7 +5,7 @@ skctl       = $D20F
 
 ; CONSTANTS - offsets in channels registers table
 
-            icl 'sfx_engine_const.inc'
+  icl 'sfx_engine_const.inc'
 
 ; VARIABLES - PAGE ZERO
 .ifdef MAIN.@DEFINES.SFX_SYNCAUDIOOUT
