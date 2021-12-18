@@ -116,9 +116,14 @@ begin
 			continue;
 		end;
 
-		if check('-makeconfig')  or check('-C')then
+		if check('-makeconfig') or check('-C') then
 		begin
 			confFN:=CONFIG_FILENAME;
+			continue;
+		end;
+		if check('-makeresource') or check('-R') then
+		begin
+			resFN:=RESOURCE_FILENAME;
 			continue;
 		end;
 
