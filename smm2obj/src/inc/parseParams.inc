@@ -59,11 +59,11 @@ begin
 	currentParam:=3;
 	while currentParam<=paramCount do
 	begin
-		param:=lowercase(paramStr(currentParam));
+		param:=paramStr(currentParam);
 		if param[1]<>'-' then haltError('Invalid parameter');
 		inc(currentParam);
 
-		if check('-org:') or check('-o') then
+		if check('-org:') or check('-Ao') then
 		begin
 			getAddr('Origin set: ',org,$A000,'Warning: The starting address was not specified or it''s wrong. Default origin is set =$A000');
 			continue;
