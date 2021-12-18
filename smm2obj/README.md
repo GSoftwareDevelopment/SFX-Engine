@@ -45,6 +45,10 @@ will move the SFX or TAB definitions (or both for `All`) to their initial indice
 Generates a configuration file for the SFX engine. The name of the generated file: "sfx_engine.conf.inc"
 **MUST BE placed in the root directory of the project!**
 
+#### `-makeresource` or `-R`
+
+Generate a resource (.rc) file. The name of generated file: "resource.rc"
+
 #### `-audiobuffer:address` or `-Aa:address`
 
 Specifies the starting address for the audio buffer.
