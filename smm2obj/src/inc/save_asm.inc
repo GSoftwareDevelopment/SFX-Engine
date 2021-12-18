@@ -1,6 +1,7 @@
-procedure saveASM(fn:string);
+procedure saveASM(fn:string; sepFiles:boolean);
 var
-	f,fconf:text;
+	f,fconf,fres:text;
+	oorg:word;
 
 	procedure generateByLines(labelname:string; var ary:array of byte; len:word);
 	var
@@ -91,8 +92,9 @@ var
 			ofs:=ary[id];
 			if ofs<>$ffff then
 			begin
-				write(f,'	dta a(data_',labelname,'_',id,') ');
-				write(f,'; offset in data ',hexstr(ofs,4),' ');
+				write(f,'	dta a(');
+				write(f,'data_',labelname,'_',id);
+				write(f,') ; offset in data ',hexstr(ofs,4),' ');
 			end
 			else
 			begin
@@ -107,15 +109,24 @@ var
 		inc(org,len*2);
 	end;
 
-	procedure setOrigin(addr:word);
+	procedure setOrigin(addr:word; subFn,resLabel:string);
 	begin
 		if (addr<>0) then
 		begin
 			temp_org:=org; org:=addr;
+			assign(f,subFn+'.asm');
+			rewrite(f);
+			writeLn(fres,resLabel,' rcasm ''',subFn,'.asm'';');
+		end
+		else
+		begin
+			assign(f,fn);
+			append(f);
 		end;
 		write(f,';	org $',hexstr(org,4));
 		writeLn(f,'	; ',stringOfChar('-',40));
 		writeLn(f);
+		writeLn(fconf,resLabel,' = $',hexstr(org,4),';');
 	end;
 
 	procedure restoreOrigin();
@@ -124,6 +135,7 @@ var
 		begin
 			org:=temp_org; temp_org:=0;
 		end;
+		close(f);
 	end;
 
 	procedure defineModulators();
@@ -150,6 +162,9 @@ var
 	end;
 
 begin
+	temp_org:=0; oorg:=org;
+	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
+
 	if length(confFN)<>0 then
 	begin
 		assign(fconf,confFN);
@@ -158,65 +173,83 @@ begin
 	else
 		fconf:=stdout;
 
-	assign(f,fn);
-	rewrite(f);
-//   writeLn(f,'   opt h-');
-//   writeLn(f,'   org $',hexstr(org,4));
-	writeLn(fconf,'// {$DEFINE SFX_SWITCH_ROM}');
+	if length(resFN)<>0 then
+	begin
+		assign(fres,resFN);
+		rewrite(fres);
+	end
+	else
+		fres:=stdout;
+
+	if	(NOTE_TABLE_ADDR<$C000) and
+			(SFX_MODE_SET_ADDR<$C000) and
+			(SFX_NOTE_SET_ADDR<$C000) and
+			(SFX_TABLE_ADDR<$C000) and
+			(TAB_TABLE_ADDR<$C000) and
+			(SONG_ADDR<$C000) and
+			(SFX_DATA_ADDR<$C000) then write(fconf,'// ');
+	writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}');
+
 	writeLn(fconf,'// {$DEFINE SFX_previewChannels}');
 	writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}');
 	writeLn(fconf,'{$DEFINE USE_MODULATORS}');
 
 	defineModulators();
 
-	writeLn(fconf,'// {$DEFINE SFX_PLAYBACK}');
+	writeLn(fconf,'{$DEFINE SFX_PLAYBACK}');
 	writeLn(fconf);
 
-	writeLn(fconf,'AUDIO_BUFFER_ADDR = $',hexstr(AUDIO_BUFFER_ADDR AND $FF,2),';');
-	writeLn(fconf,'SFX_REGISTERS     = $',hexstr(SFX_REGISTERS,4),';');
+	writeLn(fconf,'AUDIO_BUFFER_ADDR = $',hexstr(AUDIO_BUFFER_ADDR,4),';');
+	writeLn(fconf,'SFX_REGISTERS     = $',hexstr(SFX_REGISTERS and $ff,2),';');
 	writeLn(fconf,'SFX_CHANNELS_ADDR = $',hexstr(SFX_CHANNELS_ADDR,4),';');
-	temp_org:=0;
-	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
+	writeLn(fconf,'SFX_ORG           = $',hexstr(org,4),';');
 
-	setOrigin(NOTE_TABLE_ADDR);
-	writeLn(fconf,'NOTE_TABLE_PAGE   = $',hexstr(org shr 8,2),';');
-	writeLn(fconf,'NOTE_TABLE_ADDR   = $',hexstr(org,4),';');
+	assign(f,fn);
+	rewrite(f);
+//   writeLn(f,'   opt h-');
+//   writeLn(f,'   org $',hexstr(org,4));
+	close(f);
+
+	setOrigin(NOTE_TABLE_ADDR,'notetable','NOTE_TABLE_ADDR');
+	writeLn(fconf,'NOTE_TABLE_PAGE   = hi(NOTE_TABLE_ADDR);');
 	generateByLines('note_tables',notetabs,256);
 	restoreOrigin();
 
-	setOrigin(SFX_MODE_SET_ADDR);
-	writeLn(fconf,'SFX_MODE_SET_ADDR = $',hexstr(org,4),';');
+	setOrigin(SFX_MODE_SET_ADDR,'modeset','SFX_MODE_SET_ADDR');
 	generateByLines('sfx_modes',sfxmodes,usedSFX);
 	restoreOrigin();
 
-	setOrigin(SFX_NOTE_SET_ADDR);
-	writeLn(fconf,'SFX_NOTE_SET_ADDR = $',hexstr(org,4),';');
+	setOrigin(SFX_NOTE_SET_ADDR,'noteset','SFX_NOTE_SET_ADDR');
 	generateByLines('sfx_note',sfxnote,usedSFX);
 	restoreOrigin();
 
-	setOrigin(SONG_ADDR);
-	writeLn(fconf,'SONG_ADDR         = $',hexstr(org,4),';');
-	generateByLines('song',song,256);
-	restoreOrigin();
-
-	setOrigin(SFX_TABLE_ADDR);
-	writeLn(fconf,'SFX_TABLE_ADDR    = $',hexstr(org,4),';');
+	setOrigin(SFX_TABLE_ADDR,'sfxtable','SFX_TABLE_ADDR');
 	generateWOLines('sfx',sfxptr,usedSFX,SFXUsage);
 	restoreOrigin();
 
-	setOrigin(TAB_TABLE_ADDR);
-	writeLn(fconf,'TAB_TABLE_ADDR    = $',hexstr(org,4),';');
+	setOrigin(TAB_TABLE_ADDR,'tabtable','TAB_TABLE_ADDR');
 	generateWOLines('tab',tabptr,usedTAB,TABUsage);
 	restoreOrigin();
 
-	setOrigin(SFX_DATA_ADDR);
-	writeLn(fconf,'SFX_DATA_ADDR     = $',hexstr(org,4),';');
+	setOrigin(SONG_ADDR,'song','SONG_ADDR');
+	generateByLines('song',song,256);
+	restoreOrigin();
+
+	setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
 	generateByLines4Data('data',data,topptr);
 
 	writeLn();
 //	writeLn('Data end address: ',hexstr(org-1,4));
-	close(f);
+//	close(f);
 
 	if length(confFN)<>0 then
 		close(fconf);
+
+	if (org<>oorg) then
+	begin
+		writeLn(fres,'SFX_ORG rcasm ''',fn,''';');
+	end;
+
+	if length(resFN)<>0 then
+		close(fres);
 end;
