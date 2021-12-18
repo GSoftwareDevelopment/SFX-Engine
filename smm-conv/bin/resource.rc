@@ -1,0 +1,2 @@
+SFX_DATA_ADDR rcasm 'data.asm';
+SFX_ORG rcasm 'mole.asm';
