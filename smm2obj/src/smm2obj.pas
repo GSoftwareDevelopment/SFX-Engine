@@ -24,6 +24,7 @@ const
 	section_SONG   :TTag = ( 0, 83, 79, 78, 71); // _SONG
 
 	CONFIG_FILENAME = 'sfx_engine.conf.inc';
+	RESOURCE_FILENAME = 'resource.rc';
 
 var
 	song:array[0..255] of byte;
@@ -58,7 +59,8 @@ var
 
 	sourceFN,
 	outFN,
-	confFN:string;
+	confFN,
+	resFN:string;
 
 //
 //
@@ -125,5 +127,5 @@ begin
 	end
 	else
 		usedTAB:=64;
-	saveASM(outFN);
+	saveASM(outFN,false);
 end.
