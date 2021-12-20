@@ -25,13 +25,14 @@ var
 	end;
 
 begin
-	Write('SFX used: '); usedSFX:=0;
+	if verbose>0 then Write('SFX used: ');
+	usedSFX:=0;
 	for nSFX:=0 to 63 do
 	begin
 		if checkSFXinTABs(nSFX) then
 		begin
 			SFXUsage[nSFX]:=nSFX;
-			Write('#',nSFX,' ');
+			if verbose>0 then Write('#',nSFX,' ');
 			inc(usedSFX);
 		end
 		else
@@ -39,8 +40,12 @@ begin
 			SFXUsage[nSFX]:=-1;
 		end;
 	end;
-	WriteLn();
-	WriteLn('Summary: ',usedSFX,' SFX(s) is used.');
+
+	if verbose>0 then
+	begin
+		WriteLn();
+		WriteLn('Summary: ',usedSFX,' SFX(s) is used.');
+	end;
 end;
 
 procedure SFXOptimize();
@@ -159,12 +164,13 @@ var
 	end;
 
 begin
-	Write('TAB used: '); usedTAB:=0;
+	if verbose>0 then Write('TAB used: ');
+	usedTAB:=0;
 	for nTAB:=0 to 63 do
 	begin
 		if checkTABinSONG(nTAB) then
 		begin
-			Write('#',nTAB,' ');
+			if verbose>0 then Write('#',nTAB,' ');
 			TABUsage[nTAB]:=nTAB;
 			inc(usedTAB);
 		end
@@ -173,8 +179,12 @@ begin
 			TABUsage[nTAB]:=-1;
 		end;
 	end;
-	WriteLn();
-	WriteLn('Summary: ',usedTAB,' TAB(s) is used.');
+
+	if verbose>0 then
+	begin
+		WriteLn();
+		WriteLn('Summary: ',usedTAB,' TAB(s) is used.');
+	end;
 end;
 
 procedure TABOptimize();

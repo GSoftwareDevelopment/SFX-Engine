@@ -5,6 +5,8 @@ type
 	TTag = array[0..4] of byte;
 
 const
+	EOL = #10#13;
+
 	SFXMM_VER1_1 = $11;
 	SFXMM_VER1_2 = $12;
 
@@ -26,6 +28,8 @@ const
 	CONFIG_FILENAME = 'sfx_engine.conf.inc';
 	RESOURCE_FILENAME = 'resource.rc';
 
+	DEFAULT_ORIGIN = $A000;
+
 var
 	song:array[0..255] of byte;
 	sfxmodes,
@@ -39,7 +43,7 @@ var
 	tabSizes:array[0..63] of word;
 	data:array[0..10239] of byte;
 
-	org:word=$a000;
+	org:word = 0;
 	temp_org:word;
 	topptr:word=0;
 	totalSFX,
@@ -57,10 +61,12 @@ var
 	optimizeTAB:boolean = false;
 	TABreindex:boolean = false;
 
-	sourceFN,
-	outFN,
-	confFN,
-	resFN:string;
+	sourceFN:string = '';
+	outFN:string = '';
+	confFN:string = '';
+	resFN:string = '';
+
+	verbose:byte = 1;
 
 //
 //
@@ -89,6 +95,15 @@ begin
 	halt(-1);
 end;
 
+procedure init();
+begin
+	if verbose>0 then writeLn('SFX Music Maker converter V1.0 by: GSD 2021');
+	fillbyte(data,10240,$ff);
+	fillbyte(ndata,256,$ff);
+	fillbyte(sfxptr,128,$ff);
+	fillbyte(tabptr,128,$ff);
+end;
+
 {$I ./inc/load_smm.inc}
 {$I ./inc/save_asm.inc}
 {$I ./inc/optimize.inc}
@@ -96,24 +111,27 @@ end;
 {$I ./inc/parseParams.inc}
 
 begin
-	writeLn('SFX Music Maker converter V1.0 by: GSD 2021');
-	fillbyte(data,10240,$ff);
-	fillbyte(ndata,256,$ff);
-	fillbyte(sfxptr,128,$ff);
-	fillbyte(tabptr,128,$ff);
+	init();
 	parseParams();
 
 	loadSMM(sourceFN);
 
-	writeLn('Origin address: ',hexstr(org,4));
-	writeLn();
+	if verbose>0 then
+	begin
+		if org=0 then
+		begin
+			org:=DEFAULT_ORIGIN;
+			writeLn('Origin address: ',hexstr(org,4));
+			writeLn();
+		end;
+	end;
 
 	if optimizeSFX then
 	begin
 //		writeLn('SFX Optimalization...');
 		SFXScanUsage();
 		SFXOptimize();
-		writeLn();
+		if verbose>0 then writeLn();
 	end
 	else
 		usedSFX:=64;
@@ -123,7 +141,7 @@ begin
 //		writeLn('TAB Optimalization...');
 		TABScanUsage();
 		TABOptimize();
-		writeLn();
+		if verbose>0 then writeLn();
 	end
 	else
 		usedTAB:=64;

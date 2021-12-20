@@ -1,17 +1,28 @@
+CONST
+	COMMENT_SFX_SWITCH_ROM=' // uncomment this line if you want use RAM under ROM for data';
+	COMMENT_SFX_SYNCAUDIOOUT=' // this switch turn on buffer for POKEY data. Buffer is flush after processing all channels.';
+	COMMENT_SFX_PLAYBACK=' // if you want use song player, leave this definition uncomment';
+
 procedure saveASM(fn:string; sepFiles:boolean);
 var
 	f,fconf,fres:text;
 	oorg:word;
+	dataOriginName:string;
+
+	procedure generateBlockHeader(labelName:string; len:word);
+	begin
+		writeLn(f,'; block address: $',hexstr(org,4),' length: $',hexstr(len,4));
+		writeLn(f);
+
+		writeLn(f,labelname);
+	end;
 
 	procedure generateByLines(labelname:string; var ary:array of byte; len:word);
 	var
 		ofs:word;
 
 	begin
-		writeLn(f,'; block address: $',hexstr(org,4));
-		writeLn(f);
-
-		writeLn(f,labelname);
+		generateBlockHeader(labelName,len);
 		for ofs:=0 to len-1 do
 		begin
 			if ofs mod 16=0 then
@@ -31,10 +42,8 @@ var
 		cnt,i:byte;
 
 	begin
-		writeLn(f,'; block address: $',hexstr(org,4));
-		writeLn(f);
+		generateBlockHeader(labelName,len);
 
-		writeLn(f,labelname);
 		cnt:=0;
 		for ofs:=0 to len-1 do
 		begin
@@ -57,6 +66,7 @@ var
 				if cnt<>0 then writeLn(f);
 				cnt:=0;
 				writeLn(f);
+				writeLn(f,'; address: $',hexstr(org+ofs,4),' (offset: $',hexstr(ofs,4),')');
 				write(f,'data_tab_',en);
 				for i:=0 to 63 do
 					if TABUsage[i]=en then
@@ -77,22 +87,24 @@ var
 		inc(org,len);
 	end;
 
-	procedure generateWOLines(labelname:string; var ary:array of word; len:word; var usage:array of shortint);
+	procedure generateWOLines(labelname:string; var ary:array of word; len:word; var usage:array of shortint; origin:string);
 	var
 		id,ofs:word;
 		i:byte;
 
 	begin
-		writeLn(f,'; current block address: ',hexstr(org,4));
-		writeLn(f);
+		generateBlockHeader(labelName+'ptr',len);
 
-		writeLn(f,labelname,'ptr');
 		for id:=0 to len-1 do
 		begin
 			ofs:=ary[id];
 			if ofs<>$ffff then
 			begin
 				write(f,'	dta a(');
+				if length(origin)<>0 then
+				begin
+					write(f,origin,'.');
+				end;
 				write(f,'data_',labelname,'_',id);
 				write(f,') ; offset in data ',hexstr(ofs,4),' ');
 			end
@@ -109,7 +121,10 @@ var
 		inc(org,len*2);
 	end;
 
-	procedure setOrigin(addr:word; subFn,resLabel:string);
+	function setOrigin(addr:word; subFn,resLabel:string):string;
+	var
+		o:string;
+
 	begin
 		if (addr<>0) then
 		begin
@@ -117,16 +132,22 @@ var
 			assign(f,subFn+'.asm');
 			rewrite(f);
 			writeLn(fres,resLabel,' rcasm ''',subFn,'.asm'';');
+			result:='RESOURCE.RESOURCE.RCASM??.RESOURCE._SFX_API.'+resLabel;
 		end
 		else
 		begin
 			assign(f,fn);
 			append(f);
+			result:='';
 		end;
 		write(f,';	org $',hexstr(org,4));
 		writeLn(f,'	; ',stringOfChar('-',40));
 		writeLn(f);
-		writeLn(fconf,resLabel,' = $',hexstr(org,4),';');
+		o:=concat(resLabel,stringOfChar(' ',17-length(resLabel)));
+		if addr=0 then
+			writeLn(fconf,o,' = SFX_ORG + $',hexstr(org-oorg,4),';')
+		else
+			writeLn(fconf,o,' = $',hexstr(org,4),';')
 	end;
 
 	procedure restoreOrigin();
@@ -136,6 +157,29 @@ var
 			org:=temp_org; temp_org:=0;
 		end;
 		close(f);
+	end;
+
+	procedure generateNoteTables();
+	var
+		i:byte;
+		ntab1,
+		ntab2,
+		ntab3,
+		ntab4:boolean;
+
+	begin
+		ntab1:=false; ntab2:=false; ntab3:=false; ntab4:=false;
+		for i:=0 to 63 do
+		begin
+			if sfxnote[i]=$00 then ntab1:=true;
+			if sfxnote[i]=$40 then ntab2:=true;
+			if sfxnote[i]=$80 then ntab3:=true;
+			if sfxnote[i]=$C0 then ntab4:=true;
+		end;
+		if ntab1 then generateByLines('note_table_1',notetabs[0],64);
+		if ntab2 then generateByLines('note_table_2',notetabs[64],64);
+		if ntab3 then generateByLines('note_table_3',notetabs[128],64);
+		if ntab4 then generateByLines('note_table_4',notetabs[192],64);
 	end;
 
 	procedure defineModulators();
@@ -188,17 +232,19 @@ begin
 			(TAB_TABLE_ADDR<$C000) and
 			(SONG_ADDR<$C000) and
 			(SFX_DATA_ADDR<$C000) then write(fconf,'// ');
-	writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}');
+	writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}'+COMMENT_SFX_SWITCH_ROM);
 
-	writeLn(fconf,'// {$DEFINE SFX_previewChannels}');
-	writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}');
+	// writeLn(fconf,'// {$DEFINE SFX_previewChannels}');
+	if AUDIO_BUFFER_ADDR=0 then write(fconf,'// ');
+	writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}'+COMMENT_SFX_SYNCAUDIOOUT);
 	writeLn(fconf,'{$DEFINE USE_MODULATORS}');
 
 	defineModulators();
 
-	writeLn(fconf,'{$DEFINE SFX_PLAYBACK}');
+	writeLn(fconf,'{$DEFINE SFX_PLAYBACK}'+COMMENT_SFX_PLAYBACK);
 	writeLn(fconf);
 
+	if AUDIO_BUFFER_ADDR=0 then write(fconf,'// ');
 	writeLn(fconf,'AUDIO_BUFFER_ADDR = $',hexstr(AUDIO_BUFFER_ADDR,4),';');
 	writeLn(fconf,'SFX_REGISTERS     = $',hexstr(SFX_REGISTERS and $ff,2),';');
 	writeLn(fconf,'SFX_CHANNELS_ADDR = $',hexstr(SFX_CHANNELS_ADDR,4),';');
@@ -210,9 +256,23 @@ begin
 //   writeLn(f,'   org $',hexstr(org,4));
 	close(f);
 
+	if (SFX_DATA_ADDR<>0) then
+	begin
+		dataOriginName:=setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
+		generateByLines4Data('data',data,topptr);
+		restoreOrigin();
+	end
+	else
+		dataOriginName:='';
+
 	setOrigin(NOTE_TABLE_ADDR,'notetable','NOTE_TABLE_ADDR');
 	writeLn(fconf,'NOTE_TABLE_PAGE   = hi(NOTE_TABLE_ADDR);');
 	generateByLines('note_tables',notetabs,256);
+//	generateNoteTables();
+	restoreOrigin();
+
+	setOrigin(SONG_ADDR,'song','SONG_ADDR');
+	generateByLines('song',song,256);
 	restoreOrigin();
 
 	setOrigin(SFX_MODE_SET_ADDR,'modeset','SFX_MODE_SET_ADDR');
@@ -224,21 +284,20 @@ begin
 	restoreOrigin();
 
 	setOrigin(SFX_TABLE_ADDR,'sfxtable','SFX_TABLE_ADDR');
-	generateWOLines('sfx',sfxptr,usedSFX,SFXUsage);
+	generateWOLines('sfx',sfxptr,usedSFX,SFXUsage,dataOriginName);
 	restoreOrigin();
 
 	setOrigin(TAB_TABLE_ADDR,'tabtable','TAB_TABLE_ADDR');
-	generateWOLines('tab',tabptr,usedTAB,TABUsage);
+	generateWOLines('tab',tabptr,usedTAB,TABUsage,dataOriginName);
 	restoreOrigin();
 
-	setOrigin(SONG_ADDR,'song','SONG_ADDR');
-	generateByLines('song',song,256);
-	restoreOrigin();
+	if (SFX_DATA_ADDR=0) then
+	begin
+		dataOriginName:=setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
+		generateByLines4Data('data',data,topptr);
+		restoreOrigin();
+	end;
 
-	setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
-	generateByLines4Data('data',data,topptr);
-
-	writeLn();
 //	writeLn('Data end address: ',hexstr(org-1,4));
 //	close(f);
 

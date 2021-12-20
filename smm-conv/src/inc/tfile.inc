@@ -28,7 +28,7 @@ begin
 	IOErr:=IOResult;
 	if IOErr<>0 then
 	begin
-		writeLn('I/O Error #',IOErr); Halt(-1);
+		writeLn(stderr,'I/O Error #',IOErr); Halt(-1);
 	end;
 end;
 

@@ -112,7 +112,7 @@ Var
   tempo: byte;
 
 Begin
-  WriteLn('SONG section:');
+//  if verbose>0 then WriteLn('SONG section:');
   If version=SFXMM_VER1_2 Then
     If f.getByte(tempo) Then exit;
 
@@ -138,6 +138,11 @@ Begin
 End;
 
 Begin
+	if verbose>0 then
+	begin
+		writeLn();
+		write('Reading `'+fn+'` file...');
+	end;
   totalSFX := 0;
   totalTAB := 0;
   f.openFile(fRead,fn);
@@ -149,13 +154,13 @@ Begin
           If compareTag(section_main) Then
             loadMain()
           Else If compareTag(section_NOTE) Then
-                 loadNoteTab()
+								loadNoteTab()
           Else If compareTag(section_SFX) Then
-                 loadDefinition(true,SFXNameLength)
+								loadDefinition(true,SFXNameLength)
           Else If compareTag(section_TAB) Then
-                 loadDefinition(false,TABNameLength)
+								loadDefinition(false,TABNameLength)
           Else If compareTag(section_SONG) Then
-                 loadSONG()
+								loadSONG()
           Else
             haltError('Incorrect TAG in source file');
         End
@@ -167,7 +172,12 @@ Begin
     haltError('Unexpected end of file');
   f.closeFile();
 
-  writeLn(totalSFX,' SFX(s) declared');
-  writeLn(totalTAB,' TAB(s) declared');
-  writeLn('Data (SFXs & TABs) size: ',topPtr);
+	if verbose>0 then
+	begin
+		writeLn();
+		writeLn(totalSFX,' SFX(s) declared');
+		writeLn(totalTAB,' TAB(s) declared');
+		writeLn('Data (SFXs & TABs) size: ',topPtr);
+		writeLn();
+	end;
 End;
