@@ -1,5 +1,5 @@
 uses SysUtils;
-{$I-}
+// {$I-}
 
 type
 	TTag = array[0..4] of byte;
@@ -63,6 +63,7 @@ var
 
 	sourceFN:string = '';
 	outFN:string = '';
+	outPath:string = '';
 	confFN:string = '';
 	resFN:string = '';
 

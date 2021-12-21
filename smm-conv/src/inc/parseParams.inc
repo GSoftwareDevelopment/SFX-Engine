@@ -73,7 +73,8 @@ begin
 	if paramCount<1 then
 		showInstruction();
 	sourceFN:=paramStr(1);
-	outFN:=paramStr(2);
+	outFN:=extractFileName(paramStr(2));
+	outPath:=extractFilePath(paramStr(2));
 	currentParam:=3;
 	while currentParam<=paramCount do
 	begin
