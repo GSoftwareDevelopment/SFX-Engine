@@ -4,7 +4,7 @@
 - plik konfiguracyny `sfx_engine.conf.inc` należy przenieść do katalogu, gdzie mieści się główny program.
 - przykładowa struktura katalogu projektu, wyglądać tak:
 
-~~~
+~~~txt
 + Projekt
 |   |  /sfx_engine
 |   |  /data
@@ -15,6 +15,7 @@
 - w głównym pliku swojego programu zadeklaruj ścieżkę dostępu do biblioteki `sfx_engine` oraz utwórz deklarację biblioteki w sekcji `uses`, np.
 
 start.pas
+
 ~~~pascal
 {$librarypath './sfx_engine/'}
 

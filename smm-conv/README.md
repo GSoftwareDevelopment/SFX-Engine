@@ -40,14 +40,16 @@ exclude unused SFX or TAB definitions (or both for `All`) from the conversion.
 
 will move the SFX or TAB definitions (or both for `All`) to their initial indices.
 
-#### `-makeconfing` or `-C`
+#### `-makeconfing` or `-MC`
 
-Generates a configuration file for the SFX engine. The name of the generated file: "sfx_engine.conf.inc"
+Generates a configuration file for the SFX engine to use with SFX-API unit for MAD Pascal.
+The name of the generated file: "sfx_engine.conf.inc"
 **MUST BE placed in the root directory of the project!**
 
-#### `-makeresource` or `-R`
+#### `-makeresource` or `-MR`
 
-Generate a resource (.rc) file. The name of generated file: "resource.rc"
+Generate a resource (.rc) file for MAD Pascal.
+The name of generated file: "resource.rc"
 
 #### `-audiobuffer:address` or `-Aa:address`
 
