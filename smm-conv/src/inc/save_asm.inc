@@ -147,6 +147,7 @@ var
 			write(o);
 			result:='';
 		end;
+
 		writeLn();
 		write(f,';	org $',hexstr(org,4));
 		writeLn(f,'	; ',stringOfChar('-',40));
@@ -216,6 +217,7 @@ var
 begin
 	temp_org:=0; oorg:=org;
 	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
+
 	if not directoryExists(outPath) then
 	begin
 		write('Creating directory `'+outPath+'`...');
@@ -226,6 +228,7 @@ begin
 			haltError('Fail');
 		end;
 	end;
+
 	if fileExists(outPath+fn) then
 	begin
 		deleteFile(outPath+fn);
@@ -274,11 +277,11 @@ begin
 	writeLn(fconf,'SFX_CHANNELS_ADDR = $',hexstr(SFX_CHANNELS_ADDR,4),';');
 	writeLn(fconf,'SFX_ORG           = $',hexstr(org,4),';');
 
-	assign(f,fn);
-	rewrite(f);
+//	assign(f,fn);
+//	rewrite(f);
 //   writeLn(f,'   opt h-');
 //   writeLn(f,'   org $',hexstr(org,4));
-	close(f);
+//	close(f);
 
 	if (SFX_DATA_ADDR<>0) then
 	begin
