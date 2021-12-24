@@ -17,4 +17,4 @@
 ;
 ; subroutine to process SONG entry
 
-	icl 'song/SONG.asm'
+	icl '../song/SONG.asm'
