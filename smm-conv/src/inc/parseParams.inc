@@ -91,12 +91,14 @@ begin
 			verbose:=0; continue;
 		end;
 
-		if check('-org:') or check('-Ao') then
+		//
+		//
+
+		if check('-org:') or check('-Ao:') then
 		begin
 			getAddr(MSG_ORIGIN+' set: ',org,$A000,ERR_BAD_ADDRESS+MSG_ORIGIN+MSG_SET_TO_DEFAULT+'($A000)');
 			continue;
 		end;
-
 
 		if check('-audiobuffer:') or check('-Aa:') then
 		begin
@@ -113,6 +115,10 @@ begin
 			getAddr(MSG_SFX_CHANNELS_REGS+' set:',SFX_CHANNELS_ADDR,$6C0,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($06C0)');
 			continue;
 		end;
+
+		//
+		//
+
 		if check('-notetable:') or check('-An:') then
 		begin
 			getAddrP(MSG_NOTE_TABLE_DATA+' set:',NOTE_TABLE_ADDR,0,ERR_BAD_ADDRESS+MSG_NOTE_TABLE_DATA+MSG_ORIGIN_CONTINUE);
@@ -145,6 +151,9 @@ begin
 			continue;
 		end;
 
+		//
+		//
+
 		if check('-makeconfig') or check('-MC') then
 		begin
 			confFN:=CONFIG_FILENAME;
@@ -152,9 +161,16 @@ begin
 		end;
 		if check('-makeresource') or check('-MR') then
 		begin
+			If check(':') Then
+				confFn := param
+			Else
+				confFN := CONFIG_FILENAME;
 			resFN:=RESOURCE_FILENAME;
 			continue;
 		end;
+
+		//
+		//
 
 		if check('-reduce:') or check('-R:') then
 		begin
