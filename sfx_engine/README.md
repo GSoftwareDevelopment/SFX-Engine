@@ -40,16 +40,22 @@ uses SFX_API, atari;
 
 Przed użyciem, należy skompilować program, ale z racji świąt, mam dla Was mały prezent. 
 
-[Skompilowana wersja 1.0.1 programu]
+[Skompilowana wersja 1.0.1 dla Windows](https://github.com/GSoftwareDevelopment/SFX-Engine/releases/download/smm-conv1.0.1/smm-conv.exe)
 
-* Skopiuj ściągnięty plik do katalogu `/music` . (Linuxiaże) nadaj mu prawa do uruchomienia.
+* Skopiuj ściągnięty plik do katalogu `/music` 
 
 Załóżmy, że nasz plik z muzyką nazywa się `music.smm` i jest on umieszczony w katalogu `/music` projektu.
 
-W linii komend wpisz:
+* Uruchom `cmd.exe` i przejdź do katalogu projektu
+
+  ~~~
+  cd /music
+  ~~~
+
+* W linii komend wpisz:
 
 ~~~bash
-./smm-conv music.smm music.asm -reduce:all -reindex:all -MC -MR -Ao:0x7000 -Aa:0
+smm-conv music.smm music.asm -reduce:all -reindex:all -MC -MR -Ao:0x7000 -Aa:0
 ~~~
 
 Znaczenie parametrów:
@@ -66,7 +72,7 @@ Powyższe dwie opcje redukują rozmiar pliku wynikowego oraz zapotrzebowanie na 
 - `-Ao:0x7000` - określa adres (tzw. globalny) dla generowanyh danych w assemblerze
 - `-Aa:0` - powoduje wyłączenie buforowania audio (rejestrów **POKEY**) w pliku konfiguracyjnym `sfx_engine.conf.inc`
 
-Po więcej szczegółów nt. konwertera odsyłam do pliku README.md w programie **SMM-CONV**.
+Po więcej szczegółów nt. konwertera odsyłam do pliku [README.md programu  **SMM-CONV**](https://github.com/GSoftwareDevelopment/SFX-Engine/blob/smm-conv1.0.1/smm-conv/README.md).
 
 
 
@@ -81,7 +87,7 @@ Uruchomienie powyższej komendy, spowoduje wygenerowanie następujących plików
 
 
 
-Ważną rzeczą, jaką należy dokonać to ustawienie ścieżki w wygenerowanym pliku `music/resource.rc`, gdyż **kompilator MAD Pascal odwołuje się względem kompilowanego pliku głównego**, nie zaś pliku zasobu który jest dodany do programu.
+**WAŻNE** Należy dodać ścieżkę w wygenerowanym pliku `music/resource.rc`, gdyż kompilator MAD Pascal **odwołuje się względem położenia pliku głównego `main.pas`**, nie zaś położenia pliku zasobu który jest dodany do programu.
 
 ~~~pascal
 SFX_ORG rcasm 'music/music.asm';
@@ -101,5 +107,29 @@ uses SFX_API, atari;
 **UWAGA!** W przypadku rozdzielenia danych za pomocą przełącznika `-Ad:` (w konwerterze `smm-conv`) należy, wczytanie pliku zasobu `{$r "music/resource.rc"}`  umieścić <u>na samym początku programu</u>, przed wywołaniem innych zasobów.
 
 
+
+* W programie głównym `main.pas` dodaj jeszcze następujące linie:
+
+~~~pascal
+Begin
+	SFX_StartVBL();
+	SFX_PlaySong(0);
+	repeat until ch<>255; ch:=255;
+	SFX_End();
+End.
+~~~
+
+* `SFX_StartVBL` inicjuje silnik SFX, podpinając go pod przerwanie VBLANK.
+* `SFX_PlaySong(0)` uruchamia odtwarzanie muzyczki od wiersza 0.
+
+* `SFX_End()` kończy działanie silnika SFX
+
+
+
+* Skompiluj plik `main.pas` - jak to zrobić najwygodniej? Odsyłam do dokumentu @Bocianu [MAD Pascal i Geany](http://bocianu.atari.pl/blog/madgeany)
+
+* Uruchom XEXa
+
+  
 
 I to tyle - można się cieszyć muzyką z programu **SFX Music Maker** (aka **SFX-Tracker**) w swoim projekcie :)
