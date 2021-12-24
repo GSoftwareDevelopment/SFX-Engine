@@ -131,10 +131,10 @@ var
 			temp_org:=org; org:=addr;
 			o:=concat(outPath,subFn,'.asm');
 			assign(f,o);
-			write(o);
+			// write(o);
 			rewrite(f);
 			writeLn(fres,resLabel,' rcasm ''',outPath+subFn,'.asm'';');
-			result:='RESOURCE.RESOURCE.RCASM??.RESOURCE._SFX_API.'+resLabel;
+			result:='RESOURCE.RESOURCE.RCASM0.RESOURCE._SFX_API.'+resLabel;
 		end
 		else
 		begin
@@ -144,11 +144,11 @@ var
 				rewrite(f)
 			else
 				append(f);
-			write(o);
+			// write(o);
 			result:='';
 		end;
 
-		writeLn();
+		// writeLn();
 		write(f,';	org $',hexstr(org,4));
 		writeLn(f,'	; ',stringOfChar('-',40));
 		writeLn(f);
@@ -218,7 +218,7 @@ begin
 	temp_org:=0; oorg:=org;
 	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
 
-	if not directoryExists(outPath) then
+	if (length(outPath)>0) and not directoryExists(outPath) then
 	begin
 		write('Creating directory `'+outPath+'`...');
 		if createDir(outPath) then
@@ -236,7 +236,7 @@ begin
 
 	if length(confFN)<>0 then
 	begin
-		writeLn(outPath+confFN);
+		// writeLn(outPath+confFN);
 		assign(fconf,outPath+confFN);
 		rewrite(fconf);
 	end
@@ -245,7 +245,7 @@ begin
 
 	if length(resFN)<>0 then
 	begin
-		writeLn(outPath+resFn);
+		// writeLn(outPath+resFn);
 		assign(fres,outPath+resFN);
 		rewrite(fres);
 	end
