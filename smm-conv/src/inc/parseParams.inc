@@ -6,12 +6,13 @@ CONST
 	MSG_SFX_REGISTERS = 'SFX registers';
 	MSG_SFX_CHANNELS_REGS ='SFX channels registers';
 	MSG_NOTE_TABLE_DATA = 'Note table data';
+	MSG_TABLE_OF_SFX_NOTE = 'Table of SFX note';
 	MSG_TABLE_OF_SFX_MODE = 'Table of SFX mode';
 	MSG_TABLE_OF_SFX_PTRS = 'Table of SFX pointers';
 	MSG_TABLE_OF_TAB_PTRS = 'Table of TAB pointers';
 	MSG_SONG_DATA = 'Song data';
 	MSG_SFXTAB_DATA = 'SFX/TAB data';
-	MSG_ORIGIN_CONTINUE = 'continue origin';
+	MSG_ORIGIN_CONTINUE = ' continue origin';
 	MSG_SET_TO_DEFAULT = ' is set to default ';
 
 procedure parseParams();
@@ -82,15 +83,6 @@ begin
 		if param[1]<>'-' then haltError('Invalid parameter');
 		inc(currentParam);
 
-		if check('-verbose') or check('-v') then
-		begin
-			verbose:=2; continue;
-		end;
-		if check('-silent') or check('-s') then
-		begin
-			verbose:=0; continue;
-		end;
-
 		//
 		//
 
@@ -125,6 +117,11 @@ begin
 			NOTE_TABLE_PAGE:=NOTE_TABLE_ADDR shr 8;
 			continue;
 		end;
+		if check('-sfxnotetable:') or check('-Ae:') then
+		begin
+			getAddr(MSG_TABLE_OF_SFX_NOTE+' set:',SFX_NOTE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_NOTE+MSG_ORIGIN_CONTINUE);
+			continue;
+		end;
 		if check('-sfxmodetable:') or check('-Am:') then
 		begin
 			getAddr(MSG_TABLE_OF_SFX_MODE+' set:',SFX_MODE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_MODE+MSG_ORIGIN_CONTINUE);
@@ -140,7 +137,7 @@ begin
 			getAddr(MSG_TABLE_OF_TAB_PTRS+' set:',TAB_TABLE_ADDR,$F0,ERR_BAD_ADDRESS+MSG_TABLE_OF_TAB_PTRS+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-song:') or check('-Ag:') then
+		if check('-songdata:') or check('-Ag:') then
 		begin
 			getAddr(MSG_SONG_DATA+' set:',SONG_ADDR,$F0,ERR_BAD_ADDRESS+MSG_SONG_DATA+MSG_ORIGIN_CONTINUE);
 			continue;
@@ -223,6 +220,16 @@ begin
 			end;
 			continue;
 		end;
+
+		if check('-verbose') or check('-v') then
+		begin
+			verbose:=2; continue;
+		end;
+		if check('-silent') or check('-s') then
+		begin
+			verbose:=0; continue;
+		end;
+
 		writeLn(stderr,'What is this `',param,'`? :O');
 		haltError('Unrecognized parameter');
 	end;
