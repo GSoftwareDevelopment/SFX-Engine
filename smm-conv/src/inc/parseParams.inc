@@ -73,36 +73,52 @@ var
 begin
 	if paramCount<1 then
 		showInstruction();
-	sourceFN:=paramStr(1);
-	outFN:=extractFileName(paramStr(2));
-	outPath:=extractFilePath(paramStr(2));
-	currentParam:=3;
+	currentParam:=1;
 	while currentParam<=paramCount do
 	begin
 		param:=paramStr(currentParam);
-		if param[1]<>'-' then haltError('Invalid parameter');
+//		if param[1]<>'-' then haltError('Invalid parameter');
 		inc(currentParam);
 
+		if not check('-') then
+		begin
+			if length(sourceFN)=0 then
+			begin
+				sourceFN:=param;
+				writeLn('Music file: ',sourceFN);
+			end
+			else
+			begin
+				outFN:=param;
+				writeLn('Out file: ',outFN);
+			end;
+			continue;
+		end;
+
+		if check('version') or check('-v') then
+		begin
+			WriteLn(VERSION); halt;
+		end;
 		//
 		//
 
-		if check('-org:') or check('-Ao:') then
+		if check('org:') or check('Ao:') then
 		begin
 			getAddr(MSG_ORIGIN+' set: ',org,$A000,ERR_BAD_ADDRESS+MSG_ORIGIN+MSG_SET_TO_DEFAULT+'($A000)');
 			continue;
 		end;
 
-		if check('-audiobuffer:') or check('-Aa:') then
+		if check('audiobuffer:') or check('Aa:') then
 		begin
 			getAddr(MSG_AUDIO_BUFFER+' set:',AUDIO_BUFFER_ADDR,$E8,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($00E8)');
 			continue;
 		end;
-		if check('-regs:') or check('-Ar:') then
+		if check('regs:') or check('Ar:') then
 		begin
 			getAddrB(MSG_SFX_REGISTERS+' set:',SFX_REGISTERS,$F0,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($00F0)');
 			continue;
 		end;
-		if check('-chnregs:') or check('-Ac:') then
+		if check('chnregs:') or check('Ac:') then
 		begin
 			getAddr(MSG_SFX_CHANNELS_REGS+' set:',SFX_CHANNELS_ADDR,$6C0,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($06C0)');
 			continue;
@@ -111,38 +127,38 @@ begin
 		//
 		//
 
-		if check('-notetable:') or check('-An:') then
+		if check('notetable:') or check('An:') then
 		begin
 			getAddrP(MSG_NOTE_TABLE_DATA+' set:',NOTE_TABLE_ADDR,0,ERR_BAD_ADDRESS+MSG_NOTE_TABLE_DATA+MSG_ORIGIN_CONTINUE);
 			NOTE_TABLE_PAGE:=NOTE_TABLE_ADDR shr 8;
 			continue;
 		end;
-		if check('-sfxnotetable:') or check('-Ae:') then
+		if check('sfxnotetable:') or check('Ae:') then
 		begin
 			getAddr(MSG_TABLE_OF_SFX_NOTE+' set:',SFX_NOTE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_NOTE+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-sfxmodetable:') or check('-Am:') then
+		if check('sfxmodetable:') or check('Am:') then
 		begin
 			getAddr(MSG_TABLE_OF_SFX_MODE+' set:',SFX_MODE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_MODE+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-sfxtable:') or check('-As:') then
+		if check('sfxtable:') or check('As:') then
 		begin
 			getAddr(MSG_TABLE_OF_SFX_PTRS+' set:',SFX_TABLE_ADDR,$0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_PTRS+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-tabtable:') or check('-At:') then
+		if check('tabtable:') or check('At:') then
 		begin
 			getAddr(MSG_TABLE_OF_TAB_PTRS+' set:',TAB_TABLE_ADDR,$F0,ERR_BAD_ADDRESS+MSG_TABLE_OF_TAB_PTRS+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-songdata:') or check('-Ag:') then
+		if check('songdata:') or check('Ag:') then
 		begin
 			getAddr(MSG_SONG_DATA+' set:',SONG_ADDR,$F0,ERR_BAD_ADDRESS+MSG_SONG_DATA+MSG_ORIGIN_CONTINUE);
 			continue;
 		end;
-		if check('-data:') or check('-Ad:') then
+		if check('data:') or check('Ad:') then
 		begin
 			getAddr(MSG_SFXTAB_DATA+' set:',SFX_DATA_ADDR,$F0,ERR_BAD_ADDRESS+MSG_SFXTAB_DATA+MSG_ORIGIN_CONTINUE);
 			continue;
@@ -151,12 +167,12 @@ begin
 		//
 		//
 
-		if check('-makeconfig') or check('-MC') then
+		if check('makeconfig') or check('MC') then
 		begin
 			confFN:=CONFIG_FILENAME;
 			continue;
 		end;
-		if check('-makeresource') or check('-MR') then
+		if check('makeresource') or check('MR') then
 		begin
 			If check(':') Then
 				confFn := param
@@ -169,7 +185,7 @@ begin
 		//
 		//
 
-		if check('-reduce:') or check('-R:') then
+		if check('reduce:') or check('R:') then
 		begin
 			if verbose>0 then write('Reducing: ');
 			if pos('sfxonly',param)=1 then
@@ -195,7 +211,7 @@ begin
 			continue;
 		end;
 
-		if check('-reindex:') or check('-I:') then
+		if check('reindex:') or check('I:') then
 		begin
 			if verbose>0 then write('Reindex: ');
 			if pos('sfxonly',param)=1 then
@@ -221,16 +237,27 @@ begin
 			continue;
 		end;
 
-		if check('-verbose') or check('-v') then
+		if check('verbose') or check('v') then
 		begin
 			verbose:=2; continue;
 		end;
-		if check('-silent') or check('-s') then
+		if check('silent') or check('s') then
 		begin
 			verbose:=0; continue;
 		end;
 
 		writeLn(stderr,'What is this `',param,'`? :O');
 		haltError('Unrecognized parameter');
+	end;
+
+	if length(outFN)>0 then
+	begin
+		outPath:=extractFilePath(outFN);
+		outFN:=extractFileName(outFN);
+	end
+	else
+	begin
+		outPath:=extractFilePath(sourceFN);
+		outFN:=extractFileName(sourceFN)+'.asm';
 	end;
 end;
