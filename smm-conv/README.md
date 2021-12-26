@@ -114,6 +114,11 @@ Określa adres początkowy dla danych definicji tablicy nut.
 
 Określa adres początkowy dla informacji o trybach modulaji SFXów.
 
+### `-sfxnotetable:address`
+#### `-Ae:address`
+
+Określa adres początkowy dla informacji o tablicach nut dla SFXów.
+
 ### `-sfxtable:address`
 #### `-As:address`
 
