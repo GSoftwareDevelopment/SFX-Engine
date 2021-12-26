@@ -140,8 +140,8 @@ End;
 Begin
 	if verbose>0 then
 	begin
-		writeLn();
-		write('Reading `'+fn+'` file...');
+		writeLn(stdout);
+		write(stdout,'Reading `'+fn+'` file...');
 	end;
   totalSFX := 0;
   totalTAB := 0;
@@ -174,10 +174,10 @@ Begin
 
 	if verbose>0 then
 	begin
-		writeLn();
-		writeLn(totalSFX,' SFX(s) declared');
-		writeLn(totalTAB,' TAB(s) declared');
-		writeLn('Data (SFXs & TABs) size: ',topPtr);
-		writeLn();
+		writeLn(stdout);
+		writeLn(stdout,totalSFX,' SFX(s) declared');
+		writeLn(stdout,totalTAB,' TAB(s) declared');
+		writeLn(stdout,'Data (SFXs & TABs) size: ',topPtr);
+		writeLn(stdout);
 	end;
 End;

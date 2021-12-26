@@ -36,7 +36,7 @@ var
 
 	begin
 		if length(msg)>0 then
-			if verbose>0 then write(msg);
+			if verbose>0 then write(stdout,msg);
 		val(param,_val,err);
 		result:=err=0;
 		if not result then
@@ -45,7 +45,7 @@ var
 			_val:=def;
 		end;
 		if length(msg)>0 then
-			if verbose>0 then writeLn(hexstr(_val,4));
+			if verbose>0 then writeLn(stdout,hexstr(_val,4));
 	end;
 
 	procedure getAddrB(msg:string; var _val:word; def:word; errmsg:string);
@@ -54,7 +54,7 @@ var
 		begin
 			if (_val>255) then
 				_val:=_val and $FF;
-			if verbose>0 then writeLn(msg,' $',hexstr(_val,2));
+			if verbose>0 then writeLn(stdout,msg,' $',hexstr(_val,2));
 		end;
 	end;
 
@@ -66,7 +66,7 @@ var
 				_val:=_val shl 8
 			else
 				_val:=_val and $FF00;
-			if verbose>0 then writeLn(msg,' $',hexstr(_val,4),' (page align)')
+			if verbose>0 then writeLn(stdout,msg,' $',hexstr(_val,4),' (page align)')
 		end;
 	end;
 
@@ -85,12 +85,12 @@ begin
 			if length(sourceFN)=0 then
 			begin
 				sourceFN:=param;
-				writeLn('Music file: ',sourceFN);
+				writeLn(stdout,'Music file: ',sourceFN);
 			end
 			else
 			begin
 				outFN:=param;
-				writeLn('Out file: ',outFN);
+				writeLn(stdout,'Out file: ',outFN);
 			end;
 			continue;
 		end;
@@ -187,22 +187,22 @@ begin
 
 		if check('reduce:') or check('R:') then
 		begin
-			if verbose>0 then write('Reducing: ');
+			if verbose>0 then write(stdout,'Reducing: ');
 			if pos('sfxonly',param)=1 then
 			begin
 				optimizeSFX:=true;
-				if verbose>0 then writeLn('only SFXs');
+				if verbose>0 then writeLn(stdout,'only SFXs');
 			end
 			else if pos('tabonly',param)=1 then
 			begin
 				optimizeTAB:=true;
-				if verbose>0 then writeLn('only TABs');
+				if verbose>0 then writeLn(stdout,'only TABs');
 			end
 			else if pos('all',param)=1 then
 			begin
 				optimizeSFX:=true;
 				optimizeTAB:=true;
-				if verbose>0 then writeLn('all');
+				if verbose>0 then writeLn(stdout,'all');
 			end
 			else
 			begin
@@ -213,22 +213,22 @@ begin
 
 		if check('reindex:') or check('I:') then
 		begin
-			if verbose>0 then write('Reindex: ');
+			if verbose>0 then write(stdout,'Reindex: ');
 			if pos('sfxonly',param)=1 then
 			begin
 				SFXreindex:=true;
-				if verbose>0 then writeLn('only SFXs');
+				if verbose>0 then writeLn(stdout,'only SFXs');
 			end
 			else if pos('tabonly',param)=1 then
 			begin
 				TABreindex:=true;
-				if verbose>0 then writeLn('only TABs');
+				if verbose>0 then writeLn(stdout,'only TABs');
 			end
 			else if pos('all',param)=1 then
 			begin
 				SFXreindex:=true;
 				TABreindex:=true;
-				if verbose>0 then writeLn('all');
+				if verbose>0 then writeLn(stdout,'all');
 			end
 			else
 			begin

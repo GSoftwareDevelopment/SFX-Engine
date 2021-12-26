@@ -25,14 +25,14 @@ var
 	end;
 
 begin
-	if verbose>0 then Write('SFX used: ');
+	if verbose>0 then Write(stdout,'SFX used: ');
 	usedSFX:=0;
 	for nSFX:=0 to 63 do
 	begin
 		if checkSFXinTABs(nSFX) then
 		begin
 			SFXUsage[nSFX]:=nSFX;
-			if verbose>0 then Write('#',nSFX,' ');
+			if verbose>0 then Write(stdout,'#',nSFX,' ');
 			inc(usedSFX);
 		end
 		else
@@ -43,8 +43,8 @@ begin
 
 	if verbose>0 then
 	begin
-		WriteLn();
-		WriteLn('Summary: ',usedSFX,' SFX(s) is used.');
+		WriteLn(stdout);
+		WriteLn(stdout,'Summary: ',usedSFX,' SFX(s) is used.');
 	end;
 end;
 
@@ -131,6 +131,7 @@ begin
 		changeSFXinTAB(nTAB);
 	end;
 	(* move(ndata,data,10240); *) topptr:=ntopptr;
+	if verbose>0 then writeLn();
 end;
 
 procedure TABScanUsage();
@@ -164,7 +165,7 @@ var
 	end;
 
 begin
-	if verbose>0 then Write('TAB used: ');
+	if verbose>0 then Write(stdout,'TAB used: ');
 	usedTAB:=0;
 	for nTAB:=0 to 63 do
 	begin
@@ -182,8 +183,8 @@ begin
 
 	if verbose>0 then
 	begin
-		WriteLn();
-		WriteLn('Summary: ',usedTAB,' TAB(s) is used.');
+		WriteLn(stdout);
+		WriteLn(stdout,'Summary: ',usedTAB,' TAB(s) is used.');
 	end;
 end;
 
@@ -256,4 +257,5 @@ begin
 	until songofs=$100;
 
 	topptr:=ntopptr;
+	if verbose>0 then writeLn(stdout);
 end;

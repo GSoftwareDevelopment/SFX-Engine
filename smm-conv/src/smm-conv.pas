@@ -1,11 +1,11 @@
-uses SysUtils;
+uses SysUtils;{$H+}
 // {$I-}
 
 type
 	TTag = array[0..4] of byte;
 
 const
-	VERSION = '1.0.3';
+	VERSION = '1.0.4';
 
 	EOL = #10#13;
 
@@ -123,7 +123,7 @@ begin
 		if org=0 then
 		begin
 			org:=DEFAULT_ORIGIN;
-			writeLn('Origin address: ',hexstr(org,4));
+			writeLn(stdout,'Origin address: ',hexstr(org,4));
 			writeLn();
 		end;
 	end;
@@ -133,7 +133,6 @@ begin
 //		writeLn('SFX Optimalization...');
 		SFXScanUsage();
 		SFXOptimize();
-		if verbose>0 then writeLn();
 	end
 	else
 		usedSFX:=64;
@@ -143,9 +142,9 @@ begin
 //		writeLn('TAB Optimalization...');
 		TABScanUsage();
 		TABOptimize();
-		if verbose>0 then writeLn();
 	end
 	else
 		usedTAB:=64;
+
 	saveASM(outFN,false);
 end.
