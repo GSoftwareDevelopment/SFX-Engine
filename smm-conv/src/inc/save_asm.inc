@@ -8,6 +8,20 @@ var
 	f,fconf,fres:text;
 	oorg:word;
 	dataOriginName:string;
+	writeConf,
+	writeRes:boolean;
+
+	procedure _write(var f:text; s:string; isW:boolean);
+	begin
+		if isW then
+			write(f,s);
+	end;
+
+	procedure _writeLn(var f:text; s:string; isW:boolean);
+	begin
+		if isW then
+			writeLn(f,s);
+	end;
 
 	procedure generateBlockHeader(labelName:string; len:word);
 	begin
@@ -133,7 +147,7 @@ var
 			assign(f,o);
 			// write(o);
 			rewrite(f);
-			writeLn(fres,resLabel,' rcasm ''',outPath+subFn,'.asm'';');
+			_writeLn(fres,resLabel+' rcasm '''+outPath+subFn+'.asm'';',writeRes);
 			result:='RESOURCE.RESOURCE.RCASM0.RESOURCE._SFX_API.'+resLabel;
 		end
 		else
@@ -154,9 +168,9 @@ var
 		writeLn(f);
 		o:=concat(resLabel,stringOfChar(' ',17-length(resLabel)));
 		if addr=0 then
-			writeLn(fconf,o,' = SFX_ORG + $',hexstr(org-oorg,4),';')
+			_writeLn(fconf,o+' = SFX_ORG + $'+hexstr(org-oorg,4)+';',writeConf)
 		else
-			writeLn(fconf,o,' = $',hexstr(org,4),';')
+			_writeLn(fconf,o+' = $'+hexstr(org,4)+';',writeConf);
 	end;
 
 	procedure restoreOrigin();
@@ -208,10 +222,10 @@ var
 			if sfxmodes[i]=$02 then mod_lfd:=true;
 			if sfxmodes[i]=$03 then mod_dfd:=true;
 		end;
-		if mod_dfd then writeLn(fconf,'{$DEFINE DFD_MOD}');
-		if mod_lfd then writeLn(fconf,'{$DEFINE LFD_NLM_MOD}');
-		if mod_mfd then writeLn(fconf,'{$DEFINE MFD_MOD}');
-		if mod_hfd then writeLn(fconf,'{$DEFINE HFD_MOD}');
+		if mod_dfd then _writeLn(fconf,'{$DEFINE DFD_MOD}',writeConf);
+		if mod_lfd then _writeLn(fconf,'{$DEFINE LFD_NLM_MOD}',writeConf);
+		if mod_mfd then _writeLn(fconf,'{$DEFINE MFD_MOD}',writeConf);
+		if mod_hfd then _writeLn(fconf,'{$DEFINE HFD_MOD}',writeConf);
 	end;
 
 begin
@@ -220,12 +234,12 @@ begin
 
 	if (length(outPath)>0) and not directoryExists(outPath) then
 	begin
-		write('Creating directory `'+outPath+'`...');
+		write(stdout,'Creating directory `'+outPath+'`...');
 		if createDir(outPath) then
-			writeLn('OK')
+			writeLn(stdout,'OK')
 		else
 		begin
-			haltError('Fail');
+			haltError('Failed to create directory');
 		end;
 	end;
 
@@ -234,23 +248,21 @@ begin
 		deleteFile(outPath+fn);
 	end;
 
-	if length(confFN)<>0 then
+	writeConf:=length(confFN)<>0;
+	if writeConf then
 	begin
 		// writeLn(outPath+confFN);
 		assign(fconf,outPath+confFN);
 		rewrite(fconf);
-	end
-	else
-		fconf:=stdout;
+	end;
 
-	if length(resFN)<>0 then
+	writeRes:=length(resFN)<>0;
+	if writeRes then
 	begin
 		// writeLn(outPath+resFn);
 		assign(fres,outPath+resFN);
 		rewrite(fres);
-	end
-	else
-		fres:=stdout;
+	end;
 
 	if	(NOTE_TABLE_ADDR<$C000) and
 			(SFX_MODE_SET_ADDR<$C000) and
@@ -258,24 +270,24 @@ begin
 			(SFX_TABLE_ADDR<$C000) and
 			(TAB_TABLE_ADDR<$C000) and
 			(SONG_ADDR<$C000) and
-			(SFX_DATA_ADDR<$C000) then write(fconf,'// ');
-	writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}'+COMMENT_SFX_SWITCH_ROM);
+			(SFX_DATA_ADDR<$C000) then _write(fconf,'// ',writeConf);
+	_writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}'+COMMENT_SFX_SWITCH_ROM,writeConf);
 
 	// writeLn(fconf,'// {$DEFINE SFX_previewChannels}');
-	if AUDIO_BUFFER_ADDR=0 then write(fconf,'// ');
-	writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}'+COMMENT_SFX_SYNCAUDIOOUT);
-	writeLn(fconf,'{$DEFINE USE_MODULATORS}');
+	if AUDIO_BUFFER_ADDR=0 then _write(fconf,'// ',writeConf);
+	_writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}'+COMMENT_SFX_SYNCAUDIOOUT,writeConf);
+	_writeLn(fconf,'{$DEFINE USE_MODULATORS}',writeConf);
 
 	defineModulators();
 
-	writeLn(fconf,'{$DEFINE SFX_PLAYBACK}'+COMMENT_SFX_PLAYBACK);
-	writeLn(fconf);
+	_writeLn(fconf,'{$DEFINE SFX_PLAYBACK}'+COMMENT_SFX_PLAYBACK,writeConf);
+	_writeLn(fconf,'',writeConf);
 
-	if AUDIO_BUFFER_ADDR=0 then write(fconf,'// ');
-	writeLn(fconf,'AUDIO_BUFFER_ADDR = $',hexstr(AUDIO_BUFFER_ADDR,4),';');
-	writeLn(fconf,'SFX_REGISTERS     = $',hexstr(SFX_REGISTERS and $ff,2),';');
-	writeLn(fconf,'SFX_CHANNELS_ADDR = $',hexstr(SFX_CHANNELS_ADDR,4),';');
-	writeLn(fconf,'SFX_ORG           = $',hexstr(org,4),';');
+	if AUDIO_BUFFER_ADDR=0 then _write(fconf,'// ',writeConf);
+	_writeLn(fconf,'AUDIO_BUFFER_ADDR = $'+hexstr(AUDIO_BUFFER_ADDR,4)+';',writeConf);
+	_writeLn(fconf,'SFX_REGISTERS     = $'+hexstr(SFX_REGISTERS and $ff,2)+';',writeConf);
+	_writeLn(fconf,'SFX_CHANNELS_ADDR = $'+hexstr(SFX_CHANNELS_ADDR,4)+';',writeConf);
+	_writeLn(fconf,'SFX_ORG           = $'+hexstr(org,4)+';',writeConf);
 
 //	assign(f,fn);
 //	rewrite(f);
@@ -293,7 +305,7 @@ begin
 		dataOriginName:='';
 
 	setOrigin(NOTE_TABLE_ADDR,'notetable','NOTE_TABLE_ADDR');
-	writeLn(fconf,'NOTE_TABLE_PAGE   = hi(NOTE_TABLE_ADDR);');
+	_writeLn(fconf,'NOTE_TABLE_PAGE   = hi(NOTE_TABLE_ADDR);',writeConf);
 	generateByLines('note_tables',notetabs,256);
 //	generateNoteTables();
 	restoreOrigin();
@@ -328,14 +340,14 @@ begin
 //	writeLn('Data end address: ',hexstr(org-1,4));
 //	close(f);
 
-	if length(confFN)<>0 then
+	if writeConf then
 		close(fconf);
 
 	if (org<>oorg) then
 	begin
-		writeLn(fres,'SFX_ORG rcasm ''',outPath+fn,''';');
+		_writeLn(fres,'SFX_ORG rcasm '''+outPath+fn+''';',writeRes);
 	end;
 
-	if length(resFN)<>0 then
+	if writeRes then
 		close(fres);
 end;
