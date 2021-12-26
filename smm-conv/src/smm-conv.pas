@@ -5,6 +5,8 @@ type
 	TTag = array[0..4] of byte;
 
 const
+	VERSION = 'V1.0.2';
+
 	EOL = #10#13;
 
 	SFXMM_VER1_1 = $11;
@@ -98,7 +100,7 @@ end;
 
 procedure init();
 begin
-	if verbose>0 then writeLn('SFX Music Maker converter V1.0.1 by: GSD 2021');
+	if verbose>0 then writeLn('SFX Music Maker converter '+VERSION+' by: GSD 2021');
 	fillbyte(data,10240,$ff);
 	fillbyte(ndata,256,$ff);
 	fillbyte(sfxptr,128,$ff);
