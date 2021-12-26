@@ -5,7 +5,7 @@ type
 	TTag = array[0..4] of byte;
 
 const
-	VERSION = '1.0.2';
+	VERSION = '1.0.3B';
 
 	EOL = #10#13;
 
