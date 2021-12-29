@@ -29,6 +29,9 @@ begin
 	usedSFX:=0;
 	for nSFX:=0 to 63 do
 	begin
+{$IFDEF SLOW}
+		sleep(100);
+{$ENDIF}
 		if checkSFXinTABs(nSFX) then
 		begin
 			SFXUsage[nSFX]:=nSFX;
@@ -131,7 +134,7 @@ begin
 		changeSFXinTAB(nTAB);
 	end;
 	(* move(ndata,data,10240); *) topptr:=ntopptr;
-	if verbose>0 then writeLn();
+	if verbose>0 then writeLn(stdOut);
 end;
 
 procedure TABScanUsage();
@@ -169,9 +172,12 @@ begin
 	usedTAB:=0;
 	for nTAB:=0 to 63 do
 	begin
+{$IFDEF SLOW}
+		sleep(100);
+{$ENDIF}
 		if checkTABinSONG(nTAB) then
 		begin
-			if verbose>0 then Write('#',nTAB,' ');
+			if verbose>0 then Write(stdout,'#',nTAB,' ');
 			TABUsage[nTAB]:=nTAB;
 			inc(usedTAB);
 		end
