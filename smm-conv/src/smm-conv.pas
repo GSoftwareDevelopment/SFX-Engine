@@ -1,6 +1,7 @@
 uses SysUtils;{$H+}
 // {$I-}
 
+// {$DEFINE SLOW}
 type
 	TTag = array[0..4] of byte;
 
