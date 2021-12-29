@@ -15,12 +15,18 @@ var
 	begin
 		if isW then
 			write(f,s);
+{$IFDEF SLOW}
+		sleep(100);
+{$ENDIF}
 	end;
 
 	procedure _writeLn(var f:text; s:string; isW:boolean);
 	begin
 		if isW then
 			writeLn(f,s);
+{$IFDEF SLOW}
+		sleep(100);
+{$ENDIF}
 	end;
 
 	procedure generateBlockHeader(labelName:string; len:word);
@@ -109,6 +115,9 @@ var
 	begin
 		generateBlockHeader(labelName+'ptr',len);
 
+		// TODO: Poniższe rozwiązanie generuje błedy w przypadku użycia opcji 'reduce'
+		// FIXIT: Rozwiąż to inaczej!
+
 		for id:=0 to len-1 do
 		begin
 			ofs:=ary[id];
@@ -144,29 +153,35 @@ var
 		begin
 			temp_org:=org; org:=addr;
 			o:=concat(outPath,subFn,'.asm');
+
+			// create new file for data block
 			assign(f,o);
-			// write(o);
 			rewrite(f);
+
+			// write resource info
 			_writeLn(fres,resLabel+' rcasm '''+outPath+subFn+'.asm'';',writeRes);
 			result:='RESOURCE.RESOURCE.RCASM0.RESOURCE._SFX_API.'+resLabel;
 		end
 		else
 		begin
 			o:=concat(outPath,fn);
+			// create or continue primary file (origin file)
 			assign(f,o);
 			if not fileExists(o) then
 				rewrite(f)
 			else
 				append(f);
-			// write(o);
 			result:='';
 		end;
 
-		// writeLn();
+
+		// TODO: ustal za pomocą przełącznika, czy i jakie generować nagłówki dla plików MADASM
 		write(f,';	org $',hexstr(org,4));
 		writeLn(f,'	; ',stringOfChar('-',40));
 		writeLn(f);
 		o:=concat(resLabel,stringOfChar(' ',17-length(resLabel)));
+
+		// create entry in config file
 		if addr=0 then
 			_writeLn(fconf,o+' = SFX_ORG + $'+hexstr(org-oorg,4)+';',writeConf)
 		else
@@ -245,6 +260,7 @@ begin
 
 	if fileExists(outPath+fn) then
 	begin
+		// Delete primary output file, if exist!
 		deleteFile(outPath+fn);
 	end;
 
@@ -289,6 +305,7 @@ begin
 	_writeLn(fconf,'SFX_CHANNELS_ADDR = $'+hexstr(SFX_CHANNELS_ADDR,4)+';',writeConf);
 	_writeLn(fconf,'SFX_ORG           = $'+hexstr(org,4)+';',writeConf);
 
+// TODO: ustal za pomocą przełącznika, czy i jakie generować nagłówki dla plików MADASM
 //	assign(f,fn);
 //	rewrite(f);
 //   writeLn(f,'   opt h-');

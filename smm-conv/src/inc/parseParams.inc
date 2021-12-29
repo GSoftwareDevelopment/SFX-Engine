@@ -71,7 +71,7 @@ var
 	end;
 
 begin
-	if paramCount<1 then
+	if paramCount=0 then
 		showInstruction();
 	currentParam:=1;
 	while currentParam<=paramCount do
@@ -85,12 +85,12 @@ begin
 			if length(sourceFN)=0 then
 			begin
 				sourceFN:=param;
-				writeLn(stdout,'Music file: ',sourceFN);
+				writeLn(stdout,'Music file: '+sourceFN);
 			end
 			else
 			begin
 				outFN:=param;
-				writeLn(stdout,'Out file: ',outFN);
+				writeLn(stdout,'Out file: '+outFN);
 			end;
 			continue;
 		end;
@@ -127,6 +127,7 @@ begin
 		//
 		//
 
+		// TODO: Rozważ podanie nazwy pliku dla bloków danych!
 		if check('notetable:') or check('An:') then
 		begin
 			getAddrP(MSG_NOTE_TABLE_DATA+' set:',NOTE_TABLE_ADDR,0,ERR_BAD_ADDRESS+MSG_NOTE_TABLE_DATA+MSG_ORIGIN_CONTINUE);
@@ -181,6 +182,8 @@ begin
 			resFN:=RESOURCE_FILENAME;
 			continue;
 		end;
+
+		// TODO: rozważ przełącznik ustalający, czy i jak generować nagłówki dla plików MADASM
 
 		//
 		//

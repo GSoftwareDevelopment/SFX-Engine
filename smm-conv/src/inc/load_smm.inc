@@ -138,6 +138,9 @@ Begin
 End;
 
 Begin
+	// TODO: Sprawdź najpierw, czy plik źródłowy istnieje!
+	// TODO: Przerwij z błędem, jeżeli nie istnieje!
+
 	if verbose>0 then
 	begin
 		writeLn(stdout);
@@ -177,7 +180,7 @@ Begin
 		writeLn(stdout);
 		writeLn(stdout,totalSFX,' SFX(s) declared');
 		writeLn(stdout,totalTAB,' TAB(s) declared');
-		writeLn(stdout,'Data (SFXs & TABs) size: ',topPtr);
+		writeLn(stdout,'Data (SFXs & TABs) size: ',topPtr,' byte(s)');
 		writeLn(stdout);
 	end;
 End;
