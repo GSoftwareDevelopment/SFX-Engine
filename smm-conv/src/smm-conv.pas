@@ -5,33 +5,7 @@ uses SysUtils;{$H+}
 type
 	TTag = array[0..4] of byte;
 
-const
-	VERSION = '1.0.4';
-
-	EOL = #10#13;
-
-	SFXMM_VER1_1 = $11;
-	SFXMM_VER1_2 = $12;
-
-	maxSFXs = 64;
-	maxTABs = 64;
-	maxNoteTables = 4;
-
-	SFXNameLength = 14;
-	TABNameLength = 8;
-	SONGNameLength = 32;
-	NOTETABnameLength = 11;
-
-	section_main   :TTag = (83, 70, 88, 77, 77); // SFXMM
-	section_SFX    :TTag = ( 0,  0, 83, 70, 88); // __SFX
-	section_NOTE   :TTag = ( 0, 78, 79, 84, 69); // _NOTE
-	section_TAB    :TTag = ( 0,  0, 84, 65, 66); // __TAB
-	section_SONG   :TTag = ( 0, 83, 79, 78, 71); // _SONG
-
-	CONFIG_FILENAME = 'sfx_engine.conf.inc';
-	RESOURCE_FILENAME = 'resource.rc';
-
-	DEFAULT_ORIGIN = $A000;
+{$I 'inc/const/smm-conv.inc'}
 
 var
 	song:array[0..255] of byte;
@@ -59,9 +33,9 @@ var
 	ndata:array[0..255] of byte;
 	ntopptr:word;
 
-	optimizeSFX:boolean = false;
+	SFXreduce:boolean = false;
 	SFXreindex:boolean = false;
-	optimizeTAB:boolean = false;
+	TABreduce:boolean = false;
 	TABreindex:boolean = false;
 
 	sourceFN:string = '';
@@ -69,6 +43,14 @@ var
 	outPath:string = '';
 	confFN:string = '';
 	resFN:string = '';
+	orgFN:string = '';
+	dataFN:string = DEFAULT_DATA_FILENAME;
+	noteTabFN:string = DEFAULT_NOTE_TABLES_FILENAME;
+	songTabFN:string = DEFAULT_SONG_TABLE_FILENAME;
+	sfxmodesFN:string = DEFAULT_SFX_MODES_TABLE_FILENAME;
+	sfxnotesFN:string = DEFAULT_SFX_NOTES_TABLE_FILENAME;
+	sfxTabFN:string = DEFAULT_SFX_TABLE_FILENAME;
+	tabTabFN:string = DEFAULT_TAB_TABLE_FILENAME;
 
 	verbose:byte = 1;
 
@@ -92,6 +74,7 @@ var
 	SFX_DATA_ADDR:word			= 0;
 
 {$i ./inc/tfile.inc}
+{$i ./inc/const/stdout.inc}
 
 procedure haltError(s:string);
 begin
@@ -100,11 +83,39 @@ begin
 end;
 
 procedure init();
+var i:byte;
+
 begin
 	fillbyte(data,10240,$ff);
 	fillbyte(ndata,256,$ff);
 	fillbyte(sfxptr,128,$ff);
 	fillbyte(tabptr,128,$ff);
+	for i:=0 to 63 do
+	begin
+		sfxUsage[i]:=-1;
+		tabUsage[i]:=-1;
+	end;
+end;
+
+procedure EOLStdOut(count:byte = 1);
+begin
+	if verbose=0 then exit;
+	while count>0 do
+	begin
+		writeLn(stdout); dec(count);
+	end;
+end;
+
+procedure writeStdOut(const s:string; const prm:array of const);
+begin
+	if verbose>0 then
+		write(stdout,format(s,prm));
+end;
+
+procedure writeLnStdOut(const s:string; const prm:array of const);
+begin
+	if verbose>0 then
+		writeLn(stdout,format(s,prm));
 end;
 
 {$I ./inc/load_smm.inc}
@@ -119,33 +130,18 @@ begin
 
 	loadSMM(sourceFN);
 
-	if verbose>0 then
+	if org=0 then
 	begin
-		if org=0 then
-		begin
-			org:=DEFAULT_ORIGIN;
-			writeLn(stdout,'Origin address: ',hexstr(org,4));
-			writeLn();
-		end;
+		org:=DEFAULT_ORIGIN;
+		writeLnStdOut(STDOUT_ORIGIN_ADDRESS,[org]);
+		EOLStdOut(2);
 	end;
 
-	if optimizeSFX then
-	begin
-//		writeLn('SFX Optimalization...');
-		SFXScanUsage();
-		SFXOptimize();
-	end
-	else
-		usedSFX:=64;
+	if SFXReduce then ReduceSFX() else usedSFX:=64;
+	if SFXReindex then ReindexSFX();
 
-	if optimizeTAB then
-	begin
-//		writeLn('TAB Optimalization...');
-		TABScanUsage();
-		TABOptimize();
-	end
-	else
-		usedTAB:=64;
+	if TABReduce then ReduceTAB() else usedTAB:=64;
+	if TABReindex then ReindexTAB();
 
 	saveASM(outFN,false);
 end.

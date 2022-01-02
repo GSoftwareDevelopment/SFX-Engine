@@ -1,24 +1,8 @@
-CONST
-	ERR_BAD_ADDRESS = 'Warning: address was not specified or it''s wrong.'+EOL;
-
-	MSG_ORIGIN = 'Origin';
-	MSG_AUDIO_BUFFER = 'Audio buffer';
-	MSG_SFX_REGISTERS = 'SFX registers';
-	MSG_SFX_CHANNELS_REGS ='SFX channels registers';
-	MSG_NOTE_TABLE_DATA = 'Note table data';
-	MSG_TABLE_OF_SFX_NOTE = 'Table of SFX note';
-	MSG_TABLE_OF_SFX_MODE = 'Table of SFX mode';
-	MSG_TABLE_OF_SFX_PTRS = 'Table of SFX pointers';
-	MSG_TABLE_OF_TAB_PTRS = 'Table of TAB pointers';
-	MSG_SONG_DATA = 'Song data';
-	MSG_SFXTAB_DATA = 'SFX/TAB data';
-	MSG_ORIGIN_CONTINUE = ' continue origin';
-	MSG_SET_TO_DEFAULT = ' is set to default ';
-
 procedure parseParams();
 var
 	currentParam:byte;
 	param:string;
+  fn:string;
 
 	function check(prm:string):boolean;
 	begin
@@ -31,42 +15,65 @@ var
 			result:=false;
 	end;
 
-	function getAddr(msg:string; var _val:word; def:word; errmsg:string):boolean;
-	var	err:word;
+	function getAddr(msg:string; var _val:word; def:word; var fileName:string; canFileSpec:boolean = true):boolean;
+	var	err,fnDelimPos:word;
 
 	begin
-		if length(msg)>0 then
-			if verbose>0 then write(stdout,msg);
+		fnDelimPos:=0;
+		if canFileSpec then
+		begin
+			fnDelimPos:=pos(':',param);
+			if fnDelimPos>0 then
+			begin
+				fileName:=copy(param,fnDelimPos+1);
+				param:=copy(param,1,fnDelimPos-1); // extract address from parameter
+				// writeLn(stdout,fn,' ',param);
+			end;
+		end
+		else
+		begin
+			fileName:='';
+		end;
 		val(param,_val,err);
 		result:=err=0;
 		if not result then
 		begin
-			WriteLn(stderr,errmsg);
+			if _val>0 then
+				WriteLn(stderr,format(ERR_BAD_ADDRESS_DEFAULT_SET,[msg,def]))
+			else
+				WriteLn(stderr,format(ERR_BAD_ADDRESS_ORIGIN_CONTINUE,[msg]));
 			_val:=def;
-		end;
-		if length(msg)>0 then
-			if verbose>0 then writeLn(stdout,hexstr(_val,4));
+		end
+		else
+			if length(msg)>0 then
+				if canFileSpec and (length(fileName)>0) then
+					if fnDelimPos>0 then
+						writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_OUTPUT_FILENAME_SET,[msg,4,_val,fileName])
+					else
+						writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_OUTPUT_FILENAME,[msg,4,_val,fileName])
+				else
+					writeLnStdOut(STDOUT_ADDRESS_SET,[msg,4,_val])
 	end;
 
-	procedure getAddrB(msg:string; var _val:word; def:word; errmsg:string);
+	procedure getAddrB(msg:string; var _val:word; def:word; var fileName:string; canFileSpec:boolean = true);
 	begin
-		if getAddr('',_val,def,errmsg) then
+		if getAddr('',_val,def,fileName,canFileSpec) then
 		begin
 			if (_val>255) then
 				_val:=_val and $FF;
-			if verbose>0 then writeLn(stdout,msg,' $',hexstr(_val,2));
+			writeLnStdOut(STDOUT_ADDRESS_SET,[msg,2,_val]);
 		end;
 	end;
 
-	procedure getAddrP(msg:string; var _val:word; def:word; errmsg:string);
+	procedure getAddrP(msg:string; var _val:word; def:word; var fileName:string; canFileSpec:boolean = true);
 	begin
-		if getAddr('',_val,def,errmsg) then
+		if getAddr('',_val,def,fileName,canFileSpec) then
 		begin
 			if (_val<256) then
 				_val:=_val shl 8
 			else
 				_val:=_val and $FF00;
-			if verbose>0 then writeLn(stdout,msg,' $',hexstr(_val,4),' (page align)')
+			writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_PAGE_ALIGN,[msg,4,_val]);
 		end;
 	end;
 
@@ -85,42 +92,42 @@ begin
 			if length(sourceFN)=0 then
 			begin
 				sourceFN:=param;
-				writeLn(stdout,'Music file: '+sourceFN);
+				writeLnStdOut(STDOUT_INPUT_FILE,[sourceFN]);
 			end
 			else
 			begin
 				outFN:=param;
-				writeLn(stdout,'Out file: '+outFN);
+				writeLnStdOut(STDOUT_OUTPUT_FILE,[outFN]);
 			end;
 			continue;
 		end;
 
 		if check('version') or check('-v') then
 		begin
-			WriteLn(VERSION); halt;
+			WriteLn(stdout,VERSION); halt;
 		end;
 		//
 		//
 
 		if check('org:') or check('Ao:') then
 		begin
-			getAddr(MSG_ORIGIN+' set: ',org,$A000,ERR_BAD_ADDRESS+MSG_ORIGIN+MSG_SET_TO_DEFAULT+'($A000)');
+			getAddr(STDOUT_ORIGIN,org,$A000,orgFN,true);
 			continue;
 		end;
 
 		if check('audiobuffer:') or check('Aa:') then
 		begin
-			getAddr(MSG_AUDIO_BUFFER+' set:',AUDIO_BUFFER_ADDR,$E8,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($00E8)');
+			getAddr(STDOUT_AUDIO_BUFFER,AUDIO_BUFFER_ADDR,$E8,fn,false);
 			continue;
 		end;
 		if check('regs:') or check('Ar:') then
 		begin
-			getAddrB(MSG_SFX_REGISTERS+' set:',SFX_REGISTERS,$F0,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($00F0)');
+			getAddrB(STDOUT_SFX_REGISTERS,SFX_REGISTERS,$F0,fn,false);
 			continue;
 		end;
 		if check('chnregs:') or check('Ac:') then
 		begin
-			getAddr(MSG_SFX_CHANNELS_REGS+' set:',SFX_CHANNELS_ADDR,$6C0,ERR_BAD_ADDRESS+MSG_SFX_CHANNELS_REGS+MSG_SET_TO_DEFAULT+'($06C0)');
+			getAddr(STDOUT_SFX_CHANNELS_REGS,SFX_CHANNELS_ADDR,$6C0,fn,false);
 			continue;
 		end;
 
@@ -130,38 +137,38 @@ begin
 		// TODO: Rozważ podanie nazwy pliku dla bloków danych!
 		if check('notetable:') or check('An:') then
 		begin
-			getAddrP(MSG_NOTE_TABLE_DATA+' set:',NOTE_TABLE_ADDR,0,ERR_BAD_ADDRESS+MSG_NOTE_TABLE_DATA+MSG_ORIGIN_CONTINUE);
+			getAddrP(STDOUT_NOTE_TABLE_DATA,NOTE_TABLE_ADDR,0,noteTabFN,true);
 			NOTE_TABLE_PAGE:=NOTE_TABLE_ADDR shr 8;
 			continue;
 		end;
 		if check('sfxnotetable:') or check('Ae:') then
 		begin
-			getAddr(MSG_TABLE_OF_SFX_NOTE+' set:',SFX_NOTE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_NOTE+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_TABLE_OF_SFX_NOTE,SFX_NOTE_SET_ADDR,0,sfxnotesFN,true);
 			continue;
 		end;
 		if check('sfxmodetable:') or check('Am:') then
 		begin
-			getAddr(MSG_TABLE_OF_SFX_MODE+' set:',SFX_MODE_SET_ADDR,0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_MODE+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_TABLE_OF_SFX_MODE,SFX_MODE_SET_ADDR,0,sfxmodesFN,true);
 			continue;
 		end;
 		if check('sfxtable:') or check('As:') then
 		begin
-			getAddr(MSG_TABLE_OF_SFX_PTRS+' set:',SFX_TABLE_ADDR,$0,ERR_BAD_ADDRESS+MSG_TABLE_OF_SFX_PTRS+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_TABLE_OF_SFX_PTRS,SFX_TABLE_ADDR,$0,sfxTabFN,true);
 			continue;
 		end;
 		if check('tabtable:') or check('At:') then
 		begin
-			getAddr(MSG_TABLE_OF_TAB_PTRS+' set:',TAB_TABLE_ADDR,$F0,ERR_BAD_ADDRESS+MSG_TABLE_OF_TAB_PTRS+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_TABLE_OF_TAB_PTRS,TAB_TABLE_ADDR,$0,tabTabFN,true);
 			continue;
 		end;
 		if check('songdata:') or check('Ag:') then
 		begin
-			getAddr(MSG_SONG_DATA+' set:',SONG_ADDR,$F0,ERR_BAD_ADDRESS+MSG_SONG_DATA+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_SONG_DATA,SONG_ADDR,$0,songTabFN,true);
 			continue;
 		end;
 		if check('data:') or check('Ad:') then
 		begin
-			getAddr(MSG_SFXTAB_DATA+' set:',SFX_DATA_ADDR,$F0,ERR_BAD_ADDRESS+MSG_SFXTAB_DATA+MSG_ORIGIN_CONTINUE);
+			getAddr(STDOUT_SFXTAB_DATA,SFX_DATA_ADDR,$0,dataFN,true);
 			continue;
 		end;
 
@@ -170,16 +177,18 @@ begin
 
 		if check('makeconfig') or check('MC') then
 		begin
-			confFN:=CONFIG_FILENAME;
+			If check(':') Then
+				confFN := param
+			Else
+				confFN := DEFAULT_CONFIG_FILENAME;
 			continue;
 		end;
 		if check('makeresource') or check('MR') then
 		begin
 			If check(':') Then
-				confFn := param
+				resFn := param
 			Else
-				confFN := CONFIG_FILENAME;
-			resFN:=RESOURCE_FILENAME;
+				resFN := DEFAULT_RESOURCE_FILENAME;
 			continue;
 		end;
 
@@ -190,53 +199,50 @@ begin
 
 		if check('reduce:') or check('R:') then
 		begin
-			if verbose>0 then write(stdout,'Reducing: ');
 			if pos('sfxonly',param)=1 then
 			begin
-				optimizeSFX:=true;
-				if verbose>0 then writeLn(stdout,'only SFXs');
+				SFXreduce:=true;
+				param:=STDOUT_SFX_ONLY;
 			end
 			else if pos('tabonly',param)=1 then
 			begin
-				optimizeTAB:=true;
-				if verbose>0 then writeLn(stdout,'only TABs');
+				TABreduce:=true;
+				param:=STDOUT_TAB_ONLY;
 			end
 			else if pos('all',param)=1 then
 			begin
-				optimizeSFX:=true;
-				optimizeTAB:=true;
-				if verbose>0 then writeLn(stdout,'all');
+				SFXreduce:=true;
+				TABreduce:=true;
+				param:=STDOUT_ALL;
 			end
 			else
-			begin
 				haltError('wrong reducing parameter');
-			end;
+			writeLnStdOut(STDOUT_REDUCE_SET,[param]);
 			continue;
 		end;
 
 		if check('reindex:') or check('I:') then
 		begin
-			if verbose>0 then write(stdout,'Reindex: ');
 			if pos('sfxonly',param)=1 then
 			begin
 				SFXreindex:=true;
-				if verbose>0 then writeLn(stdout,'only SFXs');
+				param:=STDOUT_SFX_ONLY;
 			end
 			else if pos('tabonly',param)=1 then
 			begin
 				TABreindex:=true;
-				if verbose>0 then writeLn(stdout,'only TABs');
+				param:=STDOUT_TAB_ONLY;
 			end
 			else if pos('all',param)=1 then
 			begin
 				SFXreindex:=true;
 				TABreindex:=true;
-				if verbose>0 then writeLn(stdout,'all');
+				param:=STDOUT_ALL;
 			end
 			else
-			begin
 				haltError('wrong reindex parameter');
-			end;
+
+			writeLnStdOut(STDOUT_REINDEX_SET,[param]);
 			continue;
 		end;
 
@@ -249,18 +255,27 @@ begin
 			verbose:=0; continue;
 		end;
 
-		writeLn(stderr,'What is this `',param,'`? :O');
+		writeLn(stderr,format('What is this %s? :O',[param]));
 		haltError('Unrecognized parameter');
 	end;
 
 	if length(outFN)>0 then
 	begin
+		// set output path from primaary file name
 		outPath:=extractFilePath(outFN);
 		outFN:=extractFileName(outFN);
 	end
 	else
 	begin
+		// set output path form source file name;
 		outPath:=extractFilePath(sourceFN);
 		outFN:=extractFileName(sourceFN)+'.asm';
+	end;
+
+	if length(orgFN)>0 then
+	begin
+		// if origin have specified file name,
+		// primary file is set to thin file
+		outFN:=orgFN;
 	end;
 end;

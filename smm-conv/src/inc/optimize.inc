@@ -1,4 +1,4 @@
-procedure SFXScanUsage();
+procedure ReduceSFX();
 var
 	nSFX:byte;
 
@@ -19,13 +19,13 @@ var
 				inc(tabofs);
 				rd2:=data[tabofs]; inc(tabofs);
 				if rd2 and $80<>0 then continue;
-				if rd2 and $3f=SFXCheck then result:=true;
+				if rd2 and $3f=SFXCheck then exit(true); // result:=true;
 			end;
 		end;
 	end;
 
 begin
-	if verbose>0 then Write(stdout,'SFX used: ');
+	writeStdOut(STDOUT_REDUCE_SFX_LIST,[]);
 	usedSFX:=0;
 	for nSFX:=0 to 63 do
 	begin
@@ -35,7 +35,7 @@ begin
 		if checkSFXinTABs(nSFX) then
 		begin
 			SFXUsage[nSFX]:=nSFX;
-			if verbose>0 then Write(stdout,'#',nSFX,' ');
+			writeStdOut(STDOUT_REDUCE_SFX_ID,[nSFX]);
 			inc(usedSFX);
 		end
 		else
@@ -44,14 +44,11 @@ begin
 		end;
 	end;
 
-	if verbose>0 then
-	begin
-		WriteLn(stdout);
-		WriteLn(stdout,'Summary: ',usedSFX,' SFX(s) is used.');
-	end;
+	EOLStdOut();
+	writeLnStdOut(STDOUT_REDUCE_SFX_SUMMARY,[usedSFX]);
 end;
 
-procedure SFXOptimize();
+procedure ReindexSFX();
 var
 	nSFX,newSFX:byte;
 	nTAB:Byte;
@@ -101,7 +98,7 @@ var
 			begin
 				oSFX:=rd2 and $3f;
 				nSFX:=SFXUsage[oSFX];
-				if nSFX=-1 then HaltError('Something goes wrong.');
+				if nSFX=-1 then HaltError(ERR_SFX_REINDEX);
 				rd2:=(rd2 and $c0) or nSFX;
 			end;
 			data[ntopptr]:=rd1; inc(ntopptr);
@@ -134,10 +131,14 @@ begin
 		changeSFXinTAB(nTAB);
 	end;
 	(* move(ndata,data,10240); *) topptr:=ntopptr;
-	if verbose>0 then writeLn(stdOut);
+	if verbose>0 then EOLStdOut();
 end;
 
-procedure TABScanUsage();
+//
+//
+//
+
+procedure ReduceTAB();
 var
 	nTAB:byte;
 
@@ -161,14 +162,14 @@ var
 
 				if se and $40=0 then
 				begin
-					if se and $3f=nTAB then result:=true;
+					if se and $3f=nTAB then exit(true); // result:=true;
 				end;
 			end;
 		until songofs=$100;
 	end;
 
 begin
-	if verbose>0 then Write(stdout,'TAB used: ');
+	writeStdOut(STDOUT_REDUCE_TAB_LIST,[]);
 	usedTAB:=0;
 	for nTAB:=0 to 63 do
 	begin
@@ -177,7 +178,7 @@ begin
 {$ENDIF}
 		if checkTABinSONG(nTAB) then
 		begin
-			if verbose>0 then Write(stdout,'#',nTAB,' ');
+			writeStdOut(STDOUT_REDUCE_TAB_ID,[nTAB]);
 			TABUsage[nTAB]:=nTAB;
 			inc(usedTAB);
 		end
@@ -187,14 +188,11 @@ begin
 		end;
 	end;
 
-	if verbose>0 then
-	begin
-		WriteLn(stdout);
-		WriteLn(stdout,'Summary: ',usedTAB,' TAB(s) is used.');
-	end;
+	EOLStdOut();
+	WriteLnStdOut(STDOUT_REDUCE_TAB_SUMMARY,[usedTAB]);
 end;
 
-procedure TABOptimize();
+procedure ReindexTAB();
 var
 	nSFX,nTAB,newTAB:byte;
 	songofs:word;

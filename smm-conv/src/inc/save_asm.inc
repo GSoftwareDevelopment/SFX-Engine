@@ -1,191 +1,198 @@
-CONST
-	COMMENT_SFX_SWITCH_ROM=' // uncomment this line if you want use RAM under ROM for data';
-	COMMENT_SFX_SYNCAUDIOOUT=' // this switch turn on buffer for POKEY data. Buffer is flush after processing all channels.';
-	COMMENT_SFX_PLAYBACK=' // if you want use song player, leave this definition uncomment';
-
-procedure saveASM(fn:string; sepFiles:boolean);
+{$I const/save_asm.inc}
 var
 	f,fconf,fres:text;
-	oorg:word;
-	dataOriginName:string;
 	writeConf,
 	writeRes:boolean;
 
-	procedure _write(var f:text; s:string; isW:boolean);
+procedure _EOL(var f:text; count:byte = 1);
+begin
+	while count>0 do
 	begin
-		if isW then
-			write(f,s);
-{$IFDEF SLOW}
-		sleep(100);
-{$ENDIF}
+		writeLn(f); dec(count);
 	end;
+end;
 
-	procedure _writeLn(var f:text; s:string; isW:boolean);
-	begin
-		if isW then
-			writeLn(f,s);
+procedure _write(var f:text; s:string; isW:boolean);
+begin
+	if isW then
+		write(f,s);
 {$IFDEF SLOW}
-		sleep(100);
+	sleep(100);
 {$ENDIF}
+end;
+
+procedure _writeLn(var f:text; s:string; isW:boolean);
+begin
+	if isW then
+		writeLn(f,s);
+{$IFDEF SLOW}
+	sleep(100);
+{$ENDIF}
+end;
+
+procedure writeDEFINE(const lab:string; const comment:string = '');
+begin
+	_writeLn(fconf,format(DEFINE_ENTRY,[lab,comment]),writeConf);
+end;
+
+procedure writeConfConst(const _type:byte; const prm:array of const);
+var
+	CONST_TYPE:string;
+
+begin
+	case _type of
+	  1: CONST_TYPE:=CONF_CONST_SET_ORG_RELATIVE;
+		2: CONST_TYPE:=CONF_CONST_SET_PAGE;
+	else
+	  CONST_TYPE:=CONF_CONST_SET_ABSOLUTE;
 	end;
+	_writeLn(fconf,format(CONST_TYPE,prm),writeConf);
+end;
+
+procedure writeResource(const lab:string; path:string);
+begin
+	_writeLn(fres,format(RESOURCE_ENTRY,[lab,path]),writeRes);
+end;
+
+procedure saveASM(fn:string; sepFiles:boolean);
+var
+	oorg:word;
+	dataOriginName:string;
 
 	procedure generateBlockHeader(labelName:string; len:word);
 	begin
-		writeLn(f,'; block address: $',hexstr(org,4),' length: $',hexstr(len,4));
-		writeLn(f);
-
+		_EOL(F);
+		writeLn(f,format(INDENT+ASM_COMMENT+COMMENT_BLOCK_INFO,[org,len]));
 		writeLn(f,labelname);
 	end;
 
 	procedure generateByLines(labelname:string; var ary:array of byte; len:word);
 	var
 		ofs:word;
+		out:string = '';
 
 	begin
 		generateBlockHeader(labelName,len);
-		for ofs:=0 to len-1 do
+		if len=0 then exit;
+		dec(len);
+		for ofs:=0 to len do
 		begin
 			if ofs mod 16=0 then
-				write(f,'	.by ');
-			write(f,'$',hexstr(ary[ofs],2),' ');
-			if (ofs mod 16=15) and (ofs<len-1) then
-				writeLn(f);
+				out:=INDENT+ASM_DTA;
+			out:=out+format(ASM_DTA_BYTE,[ary[ofs]]);
+			if ((ofs mod 16=15) and (ofs<len)) or (ofs=len) then
+				writeLn(f,out)
+			else
+				out:=out+ASM_DTA_SEPARATOR;
 		end;
-		writeLn(f);
-		writeLn(f);
-		inc(org,len);
+		_EOL(f,2);
+		inc(org,len+1);
 	end;
 
 	procedure generateByLines4Data(labelname:string; var ary:array of byte; len:word);
 	var
-		ofs,en:word;
-		cnt,i:byte;
+		i,en:word;
 
 	begin
 		generateBlockHeader(labelName,len);
 
-		cnt:=0;
-		for ofs:=0 to len-1 do
-		begin
-			for en:=0 to 63 do
-			if ofs=sfxptr[en] then
+		for en:=0 to 63 do
+			if (sfxUsage[en]<>-1) then
 			begin
-				if cnt<>0 then writeLn(f);
-				cnt:=0;
-				writeLn(f);
-				writeLn(f,'; address: $',hexstr(org+ofs,4),' (offset: $',hexstr(ofs,4),')');
-				write(f,'data_sfx_',en);
-				for i:=0 to 63 do
-					if SFXUsage[i]=en then
-						writeLn(f,' ; ',sfxnames[i]);
-				break;
-			end;
-			for en:=0 to 63 do
-			if ofs=tabptr[en] then
-			begin
-				if cnt<>0 then writeLn(f);
-				cnt:=0;
-				writeLn(f);
-				writeLn(f,'; address: $',hexstr(org+ofs,4),' (offset: $',hexstr(ofs,4),')');
-				write(f,'data_tab_',en);
-				for i:=0 to 63 do
-					if TABUsage[i]=en then
-						writeLn(f,' ; ',tabnames[i]);
-				break;
+				i:=sfxUsage[en];
+				generateByLines(format(LABEL_DATA_SFX_N,[i]),data[sfxptr[i]],sfxSizes[i]);
 			end;
 
-			if cnt=0 then write(f,'	.by ');
-			write(f,'$',hexstr(ary[ofs],2),' ');
-
-			inc(cnt); if cnt=16 then
+		for en:=0 to 63 do
+			if (tabUsage[en]<>-1) then
 			begin
-				cnt:=0;
-				writeLn(f);
+				i:=tabUsage[en];
+				generateByLines(format(LABEL_DATA_TAB_N,[i]),data[tabptr[i]],tabSizes[i]);
 			end;
-		end;
-		writeLn(f);
+
+		_EOL(F);
 		inc(org,len);
 	end;
 
-	procedure generateWOLines(labelname:string; var ary:array of word; len:word; var usage:array of shortint; origin:string);
+	procedure generateWOLines(labelName:string; const flab:string; var ary:array of word; len:word; var usage:array of shortint; origin:string);
 	var
 		id,ofs:word;
 		i:byte;
+		lab:string;
 
 	begin
-		generateBlockHeader(labelName+'ptr',len);
+		generateBlockHeader(labelName,len*2);
 
-		// TODO: Poniższe rozwiązanie generuje błedy w przypadku użycia opcji 'reduce'
-		// FIXIT: Rozwiąż to inaczej!
+		if len=0 then exit;
 
 		for id:=0 to len-1 do
 		begin
 			ofs:=ary[id];
 			if ofs<>$ffff then
 			begin
-				write(f,'	dta a(');
 				if length(origin)<>0 then
-				begin
-					write(f,origin,'.');
-				end;
-				write(f,'data_',labelname,'_',id);
-				write(f,') ; offset in data ',hexstr(ofs,4),' ');
+					lab:=origin+'.'
+				else
+					lab:='';
+				lab:=lab+format(flab,[id]);
+
+				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_OFFSET,[lab,ofs]))
 			end
 			else
-			begin
-				write(f,'	.wo $FFFF ');
-				write(f,'; ',labelname,' #',id,' not defined');
-			end;
+				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_NOT_DEF,['$FFFF',labelName,id]));
+
 			for i:=0 to 63 do
-				if (usage[i]<>-1) and (usage[i]=id) then write(f,'optimized ',i,'=>',id);
-			writeLn(f);
+				if (usage[i]<>-1) and (usage[i]=id) then
+					write(f,format(INDENT+ASM_COMMENT+COMMENT_DATA_REINDEXED,[i,id]));
+			_EOL(f);
 		end;
-		writeLn(f);
+		_EOL(f);
 		inc(org,len*2);
 	end;
 
 	function setOrigin(addr:word; subFn,resLabel:string):string;
 	var
 		o:string;
+		create:boolean;
 
 	begin
-		if (addr<>0) then
-		begin
-			temp_org:=org; org:=addr;
-			o:=concat(outPath,subFn,'.asm');
-
-			// create new file for data block
-			assign(f,o);
-			rewrite(f);
-
-			// write resource info
-			_writeLn(fres,resLabel+' rcasm '''+outPath+subFn+'.asm'';',writeRes);
-			result:='RESOURCE.RESOURCE.RCASM0.RESOURCE._SFX_API.'+resLabel;
-		end
-		else
+		if (addr=0) then
 		begin
 			o:=concat(outPath,fn);
 			// create or continue primary file (origin file)
 			assign(f,o);
-			if not fileExists(o) then
+			create:=not fileExists(o);
+			if create then
 				rewrite(f)
 			else
 				append(f);
 			result:='';
+		end
+		else
+		begin
+			temp_org:=org; org:=addr;
+			o:=concat(outPath,subFn);
+
+			// create new file for block
+			assign(f,o);
+			rewrite(f);
+			create:=true;
+			// write resource info
+			writeResource(resLabel,outPath+subFn);
+			result:=format(RESOURCE_PATH,[resLabel]);
 		end;
 
+		if create then
+			writeLnStdOut(STDOUT_CREATE_FILE,[o]);
 
 		// TODO: ustal za pomocą przełącznika, czy i jakie generować nagłówki dla plików MADASM
-		write(f,';	org $',hexstr(org,4));
-		writeLn(f,'	; ',stringOfChar('-',40));
-		writeLn(f);
-		o:=concat(resLabel,stringOfChar(' ',17-length(resLabel)));
+		writeLn(f,format(INDENT+ASM_COMMENT+ASM_ORG,[org]));
 
 		// create entry in config file
 		if addr=0 then
-			_writeLn(fconf,o+' = SFX_ORG + $'+hexstr(org-oorg,4)+';',writeConf)
+			writeConfConst(CONST_ORG_RELATIVE,[resLabel,org-oorg])
 		else
-			_writeLn(fconf,o+' = $'+hexstr(org,4)+';',writeConf);
+			writeConfConst(CONST_ABSOLUTE,[resLabel,4,org]);
 	end;
 
 	procedure restoreOrigin();
@@ -200,24 +207,19 @@ var
 	procedure generateNoteTables();
 	var
 		i:byte;
-		ntab1,
-		ntab2,
-		ntab3,
-		ntab4:boolean;
+		ntab:array[1..4] of boolean;
 
 	begin
-		ntab1:=false; ntab2:=false; ntab3:=false; ntab4:=false;
+		for i:=1 to 4 do ntab[i]:=false;
 		for i:=0 to 63 do
 		begin
-			if sfxnote[i]=$00 then ntab1:=true;
-			if sfxnote[i]=$40 then ntab2:=true;
-			if sfxnote[i]=$80 then ntab3:=true;
-			if sfxnote[i]=$C0 then ntab4:=true;
+			if sfxnote[i]=$00 then ntab[1]:=true;
+			if sfxnote[i]=$40 then ntab[2]:=true;
+			if sfxnote[i]=$80 then ntab[3]:=true;
+			if sfxnote[i]=$C0 then ntab[4]:=true;
 		end;
-		if ntab1 then generateByLines('note_table_1',notetabs[0],64);
-		if ntab2 then generateByLines('note_table_2',notetabs[64],64);
-		if ntab3 then generateByLines('note_table_3',notetabs[128],64);
-		if ntab4 then generateByLines('note_table_4',notetabs[192],64);
+		for i:=1 to 4 do
+			if ntab[i] then generateByLines(format(LABEL_NOTE_TABLE_N,[i]),notetabs[0],64);
 	end;
 
 	procedure defineModulators();
@@ -237,10 +239,10 @@ var
 			if sfxmodes[i]=$02 then mod_lfd:=true;
 			if sfxmodes[i]=$03 then mod_dfd:=true;
 		end;
-		if mod_dfd then _writeLn(fconf,'{$DEFINE DFD_MOD}',writeConf);
-		if mod_lfd then _writeLn(fconf,'{$DEFINE LFD_NLM_MOD}',writeConf);
-		if mod_mfd then _writeLn(fconf,'{$DEFINE MFD_MOD}',writeConf);
-		if mod_hfd then _writeLn(fconf,'{$DEFINE HFD_MOD}',writeConf);
+		if mod_dfd then writeDEFINE(DEFINE_MOD_DFD);
+		if mod_lfd then writeDEFINE(DEFINE_MOD_LFD_NLM);
+		if mod_mfd then writeDEFINE(DEFINE_MOD_MFD);
+		if mod_hfd then writeDEFINE(DEFINE_MOD_HFD);
 	end;
 
 begin
@@ -249,20 +251,16 @@ begin
 
 	if (length(outPath)>0) and not directoryExists(outPath) then
 	begin
-		write(stdout,'Creating directory `'+outPath+'`...');
+		writeStdOut(STDOUT_CREATE_DIRECTORY,[outPath]);
 		if createDir(outPath) then
-			writeLn(stdout,'OK')
+			writeLnStdOut(STDOUT_CREATE_DIRECTORY_OK,[])
 		else
-		begin
-			haltError('Failed to create directory');
-		end;
+			haltError(ERR_FAILED_CREATE_DIR);
 	end;
 
 	if fileExists(outPath+fn) then
-	begin
 		// Delete primary output file, if exist!
 		deleteFile(outPath+fn);
-	end;
 
 	writeConf:=length(confFN)<>0;
 	if writeConf then
@@ -286,24 +284,29 @@ begin
 			(SFX_TABLE_ADDR<$C000) and
 			(TAB_TABLE_ADDR<$C000) and
 			(SONG_ADDR<$C000) and
-			(SFX_DATA_ADDR<$C000) then _write(fconf,'// ',writeConf);
-	_writeLn(fconf,'{$DEFINE SFX_SWITCH_ROM}'+COMMENT_SFX_SWITCH_ROM,writeConf);
+			(SFX_DATA_ADDR<$C000) then _write(fconf,COMMENT,writeConf);
+	writeDEFINE(DEFINE_SFX_SWITCH_ROM,
+	            INDENT+COMMENT+COMMENT_SFX_SWITCH_ROM);
 
 	// writeLn(fconf,'// {$DEFINE SFX_previewChannels}');
-	if AUDIO_BUFFER_ADDR=0 then _write(fconf,'// ',writeConf);
-	_writeLn(fconf,'{$DEFINE SFX_SYNCAUDIOOUT}'+COMMENT_SFX_SYNCAUDIOOUT,writeConf);
-	_writeLn(fconf,'{$DEFINE USE_MODULATORS}',writeConf);
 
+	if AUDIO_BUFFER_ADDR=0 then _write(fconf,COMMENT,writeConf);
+	writeDEFINE(DEFINE_SFX_SYNC_AUDIO_OUT,
+	            INDENT+COMMENT+COMMENT_SFX_SYNCAUDIOOUT);
+
+	writeDEFINE(DEFINE_USE_MODULATORS);
 	defineModulators();
 
-	_writeLn(fconf,'{$DEFINE SFX_PLAYBACK}'+COMMENT_SFX_PLAYBACK,writeConf);
-	_writeLn(fconf,'',writeConf);
+	writeDEFINE(DEFINE_SFX_PLAYBACK,
+	            INDENT+COMMENT+COMMENT_SFX_PLAYBACK);
+	if writeConf then _EOL(fconf); // _writeLn(fconf,'',writeConf);
 
-	if AUDIO_BUFFER_ADDR=0 then _write(fconf,'// ',writeConf);
-	_writeLn(fconf,'AUDIO_BUFFER_ADDR = $'+hexstr(AUDIO_BUFFER_ADDR,4)+';',writeConf);
-	_writeLn(fconf,'SFX_REGISTERS     = $'+hexstr(SFX_REGISTERS and $ff,2)+';',writeConf);
-	_writeLn(fconf,'SFX_CHANNELS_ADDR = $'+hexstr(SFX_CHANNELS_ADDR,4)+';',writeConf);
-	_writeLn(fconf,'SFX_ORG           = $'+hexstr(org,4)+';',writeConf);
+	if AUDIO_BUFFER_ADDR=0 then _write(fconf,COMMENT,writeConf);
+	writeConfConst(CONST_ABSOLUTE,[CONST_AUDIO_BUFFER_ADDR,4,AUDIO_BUFFER_ADDR]);
+	writeConfConst(CONST_ABSOLUTE,[CONST_SFX_REGISTERS,2,SFX_REGISTERS and $FF]);
+	writeConfConst(CONST_ABSOLUTE,[CONST_SFX_CHANNELS_ADDR,4,SFX_CHANNELS_ADDR]);
+	writeConfConst(CONST_ABSOLUTE,[CONST_SFX_ORG,4,org]);
+
 
 // TODO: ustal za pomocą przełącznika, czy i jakie generować nagłówki dla plików MADASM
 //	assign(f,fn);
@@ -314,43 +317,59 @@ begin
 
 	if (SFX_DATA_ADDR<>0) then
 	begin
-		dataOriginName:=setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
-		generateByLines4Data('data',data,topptr);
+		dataOriginName:=setOrigin(SFX_DATA_ADDR,
+		                          dataFN,
+															CONST_SFX_DATA_ADDR);
+		generateByLines4Data(LABEL_DATA,data,topptr);
 		restoreOrigin();
 	end
 	else
 		dataOriginName:='';
 
-	setOrigin(NOTE_TABLE_ADDR,'notetable','NOTE_TABLE_ADDR');
-	_writeLn(fconf,'NOTE_TABLE_PAGE   = hi(NOTE_TABLE_ADDR);',writeConf);
-	generateByLines('note_tables',notetabs,256);
+	setOrigin(NOTE_TABLE_ADDR,
+	          noteTabFN,
+						CONST_NOTE_TABLE_ADDR);
+	writeConfConst(CONST_PAGE,[CONST_NOTE_TABLE_PAGE,CONST_NOTE_TABLE_ADDR]);
+	generateByLines(LABEL_NOTE_TABLES,notetabs,256);
 //	generateNoteTables();
 	restoreOrigin();
 
-	setOrigin(SONG_ADDR,'song','SONG_ADDR');
-	generateByLines('song',song,256);
+	setOrigin(SONG_ADDR,
+	          songTabFN,
+						CONST_SONG_ADDR);
+	generateByLines(LABEL_SONG_DATA,song,256);
 	restoreOrigin();
 
-	setOrigin(SFX_MODE_SET_ADDR,'modeset','SFX_MODE_SET_ADDR');
-	generateByLines('sfx_modes',sfxmodes,usedSFX);
+	setOrigin(SFX_MODE_SET_ADDR,
+	          sfxmodesFN,
+						CONST_SFX_MODE_SET_ADDR);
+	generateByLines(LABEL_SFX_MODES_TABLE,sfxmodes,usedSFX);
 	restoreOrigin();
 
-	setOrigin(SFX_NOTE_SET_ADDR,'noteset','SFX_NOTE_SET_ADDR');
-	generateByLines('sfx_note',sfxnote,usedSFX);
+	setOrigin(SFX_NOTE_SET_ADDR,
+	          sfxnotesFN,
+						CONST_SFX_NOTE_SET_ADDR);
+	generateByLines(LABEL_SFX_NOTES_TABLE,sfxnote,usedSFX);
 	restoreOrigin();
 
-	setOrigin(SFX_TABLE_ADDR,'sfxtable','SFX_TABLE_ADDR');
-	generateWOLines('sfx',sfxptr,usedSFX,SFXUsage,dataOriginName);
+	setOrigin(SFX_TABLE_ADDR,
+	          sfxTabFN,
+						CONST_SFX_TABLE_ADDR);
+	generateWOLines(LABEL_SFX_TABLE,LABEL_DATA_SFX_N,sfxptr,usedSFX,SFXUsage,dataOriginName);
 	restoreOrigin();
 
-	setOrigin(TAB_TABLE_ADDR,'tabtable','TAB_TABLE_ADDR');
-	generateWOLines('tab',tabptr,usedTAB,TABUsage,dataOriginName);
+	setOrigin(TAB_TABLE_ADDR,
+	          tabTabFN,
+						CONST_TAB_TABLE_ADDR);
+	generateWOLines(LABEL_TAB_TABLE,LABEL_DATA_TAB_N,tabptr,usedTAB,TABUsage,dataOriginName);
 	restoreOrigin();
 
 	if (SFX_DATA_ADDR=0) then
 	begin
-		dataOriginName:=setOrigin(SFX_DATA_ADDR,'data','SFX_DATA_ADDR');
-		generateByLines4Data('data',data,topptr);
+		dataOriginName:=setOrigin(SFX_DATA_ADDR,
+		                          dataFN,
+															CONST_SFX_DATA_ADDR);
+		generateByLines4Data(LABEL_DATA,data,topptr);
 		restoreOrigin();
 	end;
 
@@ -361,9 +380,7 @@ begin
 		close(fconf);
 
 	if (org<>oorg) then
-	begin
-		_writeLn(fres,'SFX_ORG rcasm '''+outPath+fn+''';',writeRes);
-	end;
+		writeResource(CONST_SFX_ORG,outPath+fn);
 
 	if writeRes then
 		close(fres);

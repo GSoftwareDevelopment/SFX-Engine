@@ -30,7 +30,7 @@ Var
 Begin
   If f.getByte(noteTabId) Then exit;
   // read ID
-  If noteTabId>maxNoteTables-1 Then haltError('Bad index of note table definition');
+  If noteTabId>maxNoteTables-1 Then haltError(ERR_SMMFILE_NOTETABLE_BAD_ID);
 
   f.getBlock(IOBuf,NOTETABnameLength+64);
   // read data
@@ -54,23 +54,23 @@ Begin
 
   If (isSFX) Then
     Begin
-      If id>maxSFXs-1 Then haltError('Bad index of SFX definition');
+      If id>maxSFXs-1 Then haltError(ERR_SMMFILE_SFX_BAD_ID);
 
       If f.getByte(_sfxMode) Then exit;
       // read SFX Modulation Type
-      If _sfxMode>3 Then haltError('');
+      If _sfxMode>3 Then haltError(ERR_SMMFILE_SFX_MOD_BAD_ID);
 
       sfxmodes[id] := _sfxMode;
 
       If f.getByte(_sfxNoteTabOfs) Then exit;
       // read SFX note table index
-      If _sfxNoteTabOfs>3 Then haltError('Bad note table of SFX definition');
+      If _sfxNoteTabOfs>3 Then haltError(ERR_SMMFILE_SFX_NOTETABLE_BAD_ID);
       sfxnote[id] := _sfxNoteTabOfs*$40;
       inc(totalSFX);
     End
   Else
     Begin
-      If id-64>maxTABs-1 Then haltError('');
+      If id-64>maxTABs-1 Then haltError(ERR_SMMFILE_TAB_BAD_ID);
       id := id-64;
 
       inc(totalTAB);
@@ -78,7 +78,7 @@ Begin
 
   If f.getBlock(dataSize,2) Then exit;
   // read data size
-  If dataSize>256+nameLength Then haltError('Incorrect length of SFX/TAB data');
+  If dataSize>256+nameLength Then haltError(ERR_SMMFILE_INCORRECT_DATA_LENGTH);
 
   f.getBlock(IOBuf,dataSize);
   // read data
@@ -93,6 +93,7 @@ Begin
       move(IOBuf[0],sfxnames[id][1],len);
       sfxptr[id] := topPtr;
       sfxSizes[id] := dataSize;
+			sfxUsage[id] := id;
     End
   Else
     Begin
@@ -100,6 +101,7 @@ Begin
       move(IOBuf[0],tabnames[id][1],len);
       tabptr[id] := topPtr;
       tabSizes[id] := dataSize;
+			tabUsage[id] := id;
     End;
   move(IOBuf[nameLength],data[topPtr],dataSize);
   inc(topPtr,dataSize);
@@ -118,7 +120,7 @@ Begin
 
   If f.getBlock(dataSize,2) Then exit;
   // read data size
-  If dataSize>256 Then haltError('Incorrect song data length');
+  If dataSize>256 Then haltError(ERR_SMMFILE_INCORRECT_SONG_DATA_LENGTH);
 
   f.getBlock(song,dataSize);
   // read data
@@ -138,49 +140,49 @@ Begin
 End;
 
 Begin
-	// TODO: Sprawdź najpierw, czy plik źródłowy istnieje!
-	// TODO: Przerwij z błędem, jeżeli nie istnieje!
-
 	if verbose>0 then
 	begin
-		writeLn(stdout);
-		write(stdout,'Reading `'+fn+'` file...');
+		EOLStdOut;
+		writeStdOut(STDOUT_READING_SMM_FILE,[fn]);
 	end;
+	if not fileExists(fn) then
+    haltError(ERR_SOURCE_NOT_EXIST);
+
   totalSFX := 0;
   totalTAB := 0;
   f.openFile(fRead,fn);
   While (f.IOErr=0) And (Not f.EOF) Do
-    Begin
-      // get tag
-      If (Not f.getBlock(IOBuf,5)) Then
-        Begin
-          If compareTag(section_main) Then
-            loadMain()
-          Else If compareTag(section_NOTE) Then
-								loadNoteTab()
-          Else If compareTag(section_SFX) Then
-								loadDefinition(true,SFXNameLength)
-          Else If compareTag(section_TAB) Then
-								loadDefinition(false,TABNameLength)
-          Else If compareTag(section_SONG) Then
-								loadSONG()
-          Else
-            haltError('Incorrect TAG in source file');
-        End
-      Else
-        haltError('Unexpected end of file');
-      // break;
-    End;
+	Begin
+		// get tag
+		If (Not f.getBlock(IOBuf,5)) Then
+			Begin
+				If compareTag(section_main) Then
+					loadMain()
+				Else If compareTag(section_NOTE) Then
+							loadNoteTab()
+				Else If compareTag(section_SFX) Then
+							loadDefinition(true,SFXNameLength)
+				Else If compareTag(section_TAB) Then
+							loadDefinition(false,TABNameLength)
+				Else If compareTag(section_SONG) Then
+							loadSONG()
+				Else
+					haltError(ERR_SMMFILE_INCORRECT_TAG);
+			End
+		Else
+			haltError(ERR_SMMFiLE_UNEXPECTED_EOF);
+		// break;
+	End;
   If f.IOErr<>0 Then
-    haltError('Unexpected end of file');
+    haltError(ERR_SMMFiLE_UNEXPECTED_EOF);
   f.closeFile();
 
 	if verbose>0 then
 	begin
-		writeLn(stdout);
-		writeLn(stdout,totalSFX,' SFX(s) declared');
-		writeLn(stdout,totalTAB,' TAB(s) declared');
-		writeLn(stdout,'Data (SFXs & TABs) size: ',topPtr,' byte(s)');
-		writeLn(stdout);
+		EOLStdOut(2);
+		writeLnStdOut(STDOUT_SUMMARY_SFX,[totalSFX]);
+		writeLnStdOut(STDOUT_SUMMARY_TAB,[totalTAB]);
+		writeLnStdOut(STDOUT_SUMMARY_DATA_SIZE,[topPtr]);
+		EOLStdOut;
 	end;
 End;
