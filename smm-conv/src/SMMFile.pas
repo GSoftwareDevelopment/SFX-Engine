@@ -17,7 +17,8 @@ const
 
 type
 	TTag = array[0..4] of byte;
-	byteArray = array of byte;
+  PByteArray = ^TByteArray;
+	TByteArray = array[0..255] of byte;
 
 	PSFXStruct = ^TSFXStruct;
 	TSFXStruct = array[0..127] of record
@@ -42,7 +43,7 @@ type
 	TData = object
 		name:string[16];
 		size:word;
-		data:pointer;
+		data:PByteArray;
 		len:byte;
 		constructor init(_name:String; var _data; _size:word);
 		destructor done;
@@ -50,8 +51,8 @@ type
 
 	PSFXData = ^TSFXData;
 	TSFXData = object(TData)
-		mode:^byte;
-		note:^byte;
+		mode:byte;
+		note:byte;
 	end;
 
 	PTABData = ^TTABData;
@@ -64,10 +65,10 @@ type
 		songname: string[32];
 		tempo: byte;
 
-		notetab:array[0..3] of byteArray;
-		SFXModTable:byteArray;
-		SFXNoteTable:byteArray;
-		song:byteArray;
+		notetab:array[0..3] of array[0..63] of byte;
+		SFXModTable:array[0..63] of byte;
+		SFXNoteTable:array[0..63] of byte;
+		song:array[0..255] of byte;
 		SFX:array[0..63] of PSFXData;
 		TAB:array[0..63] of PTABData;
 		totalSFX,
@@ -116,7 +117,7 @@ const
 //
 //
 
-constructor TData.init();
+constructor TData.init(_name:String; var _data; _size:word);
 begin
 	name:=_name;
 	size:=_size;
@@ -149,13 +150,9 @@ begin
 
 	for i:=0 to 3 do
 	begin
-		setLength(notetab[i],64);
 		for j:=0 to 63 do notetab[i][j]:=0;
 	end;
-	setLength(song,256);
 	for j:=0 to 255 do song[j]:=0;
-	setLength(SFXModTable,64);
-	setLength(SFXNoteTable,64);
 
 	for i:=0 to 63 do
 	begin
@@ -248,13 +245,13 @@ Begin
   dec(dataSize,nameLength);
   If (isSFX) Then
 	Begin
-		writeLn(stdout,id,' ',name,' ',dataSize,' ',_sfxMode,' ',_sfxNoteTabOfs);
+//		writeLn(stdout,id,' ',name,' ',dataSize,' ',_sfxMode,' ',_sfxNoteTabOfs);
 
 		new(SFX[id],init(name,IOBuf[nameLength],dataSize));
 		SFXModTable[id]:=_sfxMode;
-		SFXNoteTable[id]:=_sfxNoteTabOfs+$40;
-		SFX[id].mode:=@SFXModTable[id]; // _sfxMode; // sfxmodes[id]:=_sfxMode;
-		SFX[id].note:=@SFXNoteTable[id]; // _sfxNoteTabOfs*$40; // sfxnote[id]:=_sfxNoteTabOfs*$40;
+		SFXNoteTable[id]:=_sfxNoteTabOfs*$40;
+		SFX[id]^.mode:=SFXModTable[id];
+		SFX[id]^.note:=SFXNoteTable[id];
 		inc(totalSFX);
 	End
   Else
@@ -335,7 +332,7 @@ var
 begin
 	result:=0;
 	for i:=0 to 63 do
-		if SFX[i]<>nil then inc(result,SFX[i].size);
+		if SFX[i]<>nil then inc(result,SFX[i]^.size);
 end;
 
 function TSMMFile.getTABDataSize():word;
@@ -345,7 +342,7 @@ var
 begin
 	result:=0;
 	for i:=0 to 63 do
-		if TAB[i]<>nil then inc(result,TAB[i].size);
+		if TAB[i]<>nil then inc(result,TAB[i]^.size);
 end;
 
 procedure TSMMFile.error(msg:string);
