@@ -46,6 +46,7 @@ var
 	oorg:word;
 	dataOriginName:string;
 	i:byte;
+  sizeAry:array[0..63] of word;
 
 	procedure generateBlockHeader(labelName:string; len:word);
 	begin
@@ -54,7 +55,7 @@ var
 		writeLn(f,labelname);
 	end;
 
-	procedure generateByLines(labelname:string; var ary:byteArray; len:word);
+	procedure generateByLines(labelname:string; var ary:array of byte; len:word);
 	var
 		ofs:word;
 		out:string = '';
@@ -87,55 +88,44 @@ var
 
 		for i:=0 to 63 do
 			if (SMM.SFX[i]<>nil) then
-			begin
-				// i:=sfxUsage[en];
 				generateByLines(
 					format(LABEL_DATA_SFX_N,[i]),
-					byteArray(SMM.SFX[i]^.data^) {data[sfxptr[i]]},
-					SMM.SFX[i]^.size {sfxSizes[i]}
+					SMM.SFX[i]^.data^,
+					SMM.SFX[i]^.size
 				);
-			end;
 
 		for i:=0 to 63 do
 			if (SMM.TAB[i]<>nil) then
-			begin
-				// i:=tabUsage[en];
 				generateByLines(
 					format(LABEL_DATA_TAB_N,[i]),
-					byteArray(SMM.TAB[i]^.data^), {data[tabptr[i]]}
-					SMM.TAB[i]^.size {tabSizes[i]}
+					SMM.TAB[i]^.data^,
+					SMM.TAB[i]^.size
 				);
-			end;
 
 		_EOL(F);
 		inc(org,len);
 	end;
 
-	procedure generateWOLines(labelName:string; const flab:string; var data; len:word; origin:string);
+	procedure generateWOLines(labelName:string; const flab:string; var ary:array of word; len:word; origin:string);
 	var
 		id,ofs:word;
 		lab:string;
-		ary:PDataArray;
 
 	begin
 		generateBlockHeader(labelName,len*2);
-		ary:=@data;
-
 		if len=0 then exit;
 		ofs:=0;
-
 		for id:=0 to len-1 do
 		begin
-			if ary[id]<>nil then
+			if ary[id]<>$ffff then
 			begin
 				if length(origin)<>0 then
 					lab:=origin+'.'
 				else
 					lab:='';
 				lab:=lab+format(flab,[id]);
-
 				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_OFFSET,[lab,ofs]));
-				inc(ofs,ary^[id]^.size);
+				inc(ofs,ary[id]);
 			end
 			else
 				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_NOT_DEF,['$FFFF',labelName,id]));
@@ -222,19 +212,13 @@ var
 		mod_dfd:=false; mod_lfd:=false; mod_mfd:=false; mod_hfd:=false;
 		for i:=0 to 63 do
 		begin
-			write(stdout,i);
-			if SMM.SFX[i]=nil then
-			begin
-				writeLn(stdout,' is free');
-				continue;
-			end;
+			if SMM.SFX[i]=nil then continue;
 
 			SFX:=SMM.SFX[i]^;
-			writeLn(stdout,' ',SFX.name,' ',sfx.mode^);
-			if sfx.mode^=$00 then mod_hfd:=true;
-			if sfx.mode^=$01 then mod_mfd:=true;
-			if sfx.mode^=$02 then mod_lfd:=true;
-			if sfx.mode^=$03 then mod_dfd:=true;
+			if sfx.mode=$00 then mod_hfd:=true;
+			if sfx.mode=$01 then mod_mfd:=true;
+			if sfx.mode=$02 then mod_lfd:=true;
+			if sfx.mode=$03 then mod_dfd:=true;
 		end;
 		if mod_dfd then writeDEFINE(DEFINE_MOD_DFD);
 		if mod_lfd then writeDEFINE(DEFINE_MOD_LFD_NLM);
@@ -243,7 +227,6 @@ var
 	end;
 
 begin
-		writeLn(stdout,SMM.getSFXDataSize);
 	temp_org:=0; oorg:=org;
 	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
 
@@ -289,7 +272,7 @@ begin
 
 	writeDEFINE(DEFINE_SFX_PLAYBACK,
 	            INDENT+COMMENT+COMMENT_SFX_PLAYBACK);
-	if writeConf then _EOL(fconf); // _writeLn(fconf,'',writeConf);
+	if writeConf then _EOL(fconf);
 
 	if AUDIO_BUFFER_ADDR=0 then _write(fconf,COMMENT,writeConf);
 	writeConfConst(CONST_ABSOLUTE,[CONST_AUDIO_BUFFER_ADDR,4,AUDIO_BUFFER_ADDR]);
@@ -321,7 +304,7 @@ begin
 						CONST_NOTE_TABLE_ADDR);
 	writeConfConst(CONST_PAGE,[CONST_NOTE_TABLE_PAGE,CONST_NOTE_TABLE_ADDR]);
 	for i:=0 to 3 do
-		generateByLines(LABEL_NOTE_TABLES,SMM.notetab[i],256);
+		generateByLines(format(LABEL_NOTE_TABLE_n,[i]),SMM.notetab[i],64);
 //	generateNoteTables();
 	restoreOrigin();
 
@@ -346,13 +329,23 @@ begin
 	setOrigin(SFX_TABLE_ADDR,
 	          sfxTabFN,
 						CONST_SFX_TABLE_ADDR);
-	generateWOLines(LABEL_SFX_TABLE,LABEL_DATA_SFX_N,SMM.SFX,usedSFX,dataOriginName);
+  for i:=0 to 63 do
+    if SMM.SFX[i]<>nil then
+      sizeAry[i]:=SMM.SFX[i]^.size
+    else
+      sizeAry[i]:=$FFFF;
+  generateWOLines(LABEL_SFX_TABLE,LABEL_DATA_SFX_N,sizeAry,usedSFX,dataOriginName);
 	restoreOrigin();
 
 	setOrigin(TAB_TABLE_ADDR,
 	          tabTabFN,
 						CONST_TAB_TABLE_ADDR);
-	generateWOLines(LABEL_TAB_TABLE,LABEL_DATA_TAB_N,SMM.TAB,usedTAB,dataOriginName);
+  for i:=0 to 63 do
+    if SMM.TAB[i]<>nil then
+      sizeAry[i]:=SMM.TAB[i]^.size
+    else
+      sizeAry[i]:=$FFFF;
+	generateWOLines(LABEL_TAB_TABLE,LABEL_DATA_TAB_N,sizeAry,usedTAB,dataOriginName);
 	restoreOrigin();
 
 	if (SFX_DATA_ADDR=0) then
