@@ -27,7 +27,7 @@ var
 		begin
 			if SMM.TAB[nTAB]=nil then continue; // skip not defined TAB;
 			TAB:=SMM.TAB[nTAB]^;
-			data:=TAB.data;
+			data:=PTABStruct(TAB.data);
 			for tabrow:=0 to TAB.len-1 do
 			begin
 				rd2:=data^[tabrow].param;	// get SFX ID
@@ -75,7 +75,11 @@ begin
 		if newSFX<>nSFX then
 		begin
 			SMM.SFX[newSFX]:=SMM.SFX[nSFX];
+			SMM.SFXModTable[newSFX]:=SMM.SFXModTable[nSFX];
+			SMM.SFXNoteTable[newSFX]:=SMM.SFXNoteTable[nSFX];
 			SMM.SFX[nSFX]:=nil;
+			SMM.SFXModTable[nSFX]:=0;
+			SMM.SFXNoteTable[nSFX]:=0;
 		end;
 
 		SFXUsage[nSFX]:=newSFX;
@@ -84,9 +88,9 @@ begin
 
 	for nTAB:=0 to 63 do
 	begin
-		if SMM.TAB[nTAB]=nil then exit; // skip not defined TAB
+		if SMM.TAB[nTAB]=nil then continue; // skip not defined TAB
 		TAB:=SMM.TAB[nTAB]^;
-		data:=TAB.Data;
+		data:=PTABStruct(TAB.Data);
 
 		for tabrow:=0 to TAB.len-1 do
 		begin
