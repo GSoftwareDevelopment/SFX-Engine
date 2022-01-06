@@ -70,29 +70,11 @@ begin
 	halt(-1);
 end;
 
-// procedure init();
-// var i:byte;
-
-// begin
-// 	fillbyte(data,10240,$ff);
-// 	fillbyte(ndata,256,$ff);
-// 	fillbyte(sfxptr,128,$ff);
-// 	fillbyte(tabptr,128,$ff);
-// 	for i:=0 to 63 do
-// 	begin
-// 		sfxUsage[i]:=-1;
-// 		tabUsage[i]:=-1;
-// 	end;
-// end;
-
 // {$I ./inc/load_smm.inc}
 {$I ./inc/save_asm.inc}
 // {$I ./inc/optimize.inc}
 {$I ./inc/help.inc}
 {$I ./inc/parseParams.inc}
-
-var
-	i:byte;
 
 begin
 	// init();
@@ -107,13 +89,12 @@ begin
 		writeLnStdOut(STDOUT_ORIGIN_ADDRESS,[org]);
 		EOLStdOut(2);
 	end;
-	usedSFX:=64;
-	usedTAB:=64;
-	// if SFXReduce then usedSFX:=SMMReduceSFX(SMM) else usedSFX:=64;
-	// if SFXReindex then SMMReindexSFX(SMM);
 
-	// if TABReduce then usedTAB:=SMMReduceTAB(SMM) else usedTAB:=64;
-	// if TABReindex then SMMReindexTAB(SMM);
+  if SFXReduce then usedSFX:=SMMReduceSFX(SMM) else usedSFX:=64;
+	if SFXReindex then SMMReindexSFX(SMM);
+
+	if TABReduce then usedTAB:=SMMReduceTAB(SMM) else usedTAB:=64;
+  if TABReindex then SMMReindexTAB(SMM);
 
 	writeLnStdOut('Generting files...',[]);
 	saveASM(outFN);
