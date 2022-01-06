@@ -6,6 +6,7 @@ CONST
 	STDOUT_SFX_ONLY = 'only SFX';
 	STDOUT_TAB_ONLY = 'only TAB';
 	STDOUT_ALL = 'all';
+	STDOUT_UNRECOGNIZED_OPTION = 'Unrecognized `%s` option.';
 
 	STDOUT_ORIGIN_ADDRESS = 'Origin address: %.4x';
 	STDOUT_REDUCE_SFX_LIST = 'SFX used: ';
@@ -46,14 +47,4 @@ CONST
 	STDOUT_CREATE_DIRECTORY = 'Create directory %s...';
   STDOUT_CREATE_DIRECTORY_OK = 'OK';
 
-	ERR_SOURCE_NOT_EXIST = 'Source file not exist';
-	ERR_SMMFiLE_UNEXPECTED_EOF = 'Unexpected end of file';
-	ERR_SMMFILE_INCORRECT_TAG = 'Incorrect tag in source file';
-	ERR_SMMFILE_NOTETABLE_BAD_ID = 'Bad index of note table definition';
-	ERR_SMMFILE_SFX_BAD_ID = 'Bad index of SFX definition';
-	ERR_SMMFILE_SFX_MOD_BAD_ID = 'Bad modulator type in SFX definition';
-	ERR_SMMFILE_SFX_NOTETABLE_BAD_ID = 'Bad note table of SFX definition';
-	ERR_SMMFILE_TAB_BAD_ID = 'Bad index of TAB definition';
-	ERR_SMMFILE_INCORRECT_DATA_LENGTH = 'Incorrect data length';
-  ERR_SMMFILE_INCORRECT_SONG_DATA_LENGTH = 'Incorrect song data length';
 	ERR_FAILED_CREATE_DIR = 'Failed to create directory';

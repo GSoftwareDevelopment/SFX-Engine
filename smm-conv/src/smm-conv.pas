@@ -1,37 +1,22 @@
-uses SysUtils;{$H+}
+uses SysUtils,SMMFile,SMMOptimize,BufFile;{$H+}
 // {$I-}
 
-// {$DEFINE SLOW}
-type
-	TTag = array[0..4] of byte;
+const
+	VERSION = '1.0.6';
 
+// {$DEFINE SLOW}
 {$I 'inc/const/smm-conv.inc'}
 
-var
-	song:array[0..255] of byte;
-	sfxmodes,
-	sfxnote:array[0..63] of byte;
-	notetabs:array[0..255] of byte;
-	sfxnames,
-	tabnames:array[0..63] of string[16];
-	sfxptr,
-	tabptr,
-	sfxSizes,
-	tabSizes:array[0..63] of word;
-	data:array[0..10239] of byte;
+type
+	PDataArray = ^TDataArray;
+	TDataArray = array of PData;
 
+var
 	org:word = 0;
 	temp_org:word;
-	topptr:word=0;
-	totalSFX,
-	totalTAB:byte;
-	usedSFX,
-	usedTAB:byte;
-	SFXUsage,
-	TABUsage:array[0..63] of shortint;
 
-	ndata:array[0..255] of byte;
-	ntopptr:word;
+	usedSFX,
+	usedTAB:Byte;
 
 	SFXreduce:boolean = false;
 	SFXreindex:boolean = false;
@@ -54,6 +39,8 @@ var
 
 	verbose:byte = 1;
 
+	SMM:TSMMFile;
+
 //
 //
 
@@ -73,8 +60,9 @@ var
 
 	SFX_DATA_ADDR:word			= 0;
 
-{$i ./inc/tfile.inc}
+// {$i ./inc/tfile.inc}
 {$i ./inc/const/stdout.inc}
+{$I ./inc/file_helpes.inc}
 
 procedure haltError(s:string);
 begin
@@ -82,53 +70,36 @@ begin
 	halt(-1);
 end;
 
-procedure init();
-var i:byte;
+// procedure init();
+// var i:byte;
 
-begin
-	fillbyte(data,10240,$ff);
-	fillbyte(ndata,256,$ff);
-	fillbyte(sfxptr,128,$ff);
-	fillbyte(tabptr,128,$ff);
-	for i:=0 to 63 do
-	begin
-		sfxUsage[i]:=-1;
-		tabUsage[i]:=-1;
-	end;
-end;
+// begin
+// 	fillbyte(data,10240,$ff);
+// 	fillbyte(ndata,256,$ff);
+// 	fillbyte(sfxptr,128,$ff);
+// 	fillbyte(tabptr,128,$ff);
+// 	for i:=0 to 63 do
+// 	begin
+// 		sfxUsage[i]:=-1;
+// 		tabUsage[i]:=-1;
+// 	end;
+// end;
 
-procedure EOLStdOut(count:byte = 1);
-begin
-	if verbose=0 then exit;
-	while count>0 do
-	begin
-		writeLn(stdout); dec(count);
-	end;
-end;
-
-procedure writeStdOut(const s:string; const prm:array of const);
-begin
-	if verbose>0 then
-		write(stdout,format(s,prm));
-end;
-
-procedure writeLnStdOut(const s:string; const prm:array of const);
-begin
-	if verbose>0 then
-		writeLn(stdout,format(s,prm));
-end;
-
-{$I ./inc/load_smm.inc}
+// {$I ./inc/load_smm.inc}
 {$I ./inc/save_asm.inc}
-{$I ./inc/optimize.inc}
+// {$I ./inc/optimize.inc}
 {$I ./inc/help.inc}
 {$I ./inc/parseParams.inc}
 
+var
+	i:byte;
+
 begin
-	init();
+	// init();
 	parseParams();
 
-	loadSMM(sourceFN);
+	SMM.init(sourceFN);
+	SMM.load();
 
 	if org=0 then
 	begin
@@ -136,12 +107,14 @@ begin
 		writeLnStdOut(STDOUT_ORIGIN_ADDRESS,[org]);
 		EOLStdOut(2);
 	end;
+	usedSFX:=64;
+	usedTAB:=64;
+	// if SFXReduce then usedSFX:=SMMReduceSFX(SMM) else usedSFX:=64;
+	// if SFXReindex then SMMReindexSFX(SMM);
 
-	if SFXReduce then ReduceSFX() else usedSFX:=64;
-	if SFXReindex then ReindexSFX();
+	// if TABReduce then usedTAB:=SMMReduceTAB(SMM) else usedTAB:=64;
+	// if TABReindex then SMMReindexTAB(SMM);
 
-	if TABReduce then ReduceTAB() else usedTAB:=64;
-	if TABReindex then ReindexTAB();
-
-	saveASM(outFN,false);
+	writeLnStdOut('Generting files...',[]);
+	saveASM(outFN);
 end.

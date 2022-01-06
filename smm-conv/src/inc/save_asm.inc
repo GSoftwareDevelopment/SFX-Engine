@@ -1,33 +1,16 @@
 {$I const/save_asm.inc}
-var
-	f,fconf,fres:text;
-	writeConf,
-	writeRes:boolean;
 
-procedure _EOL(var f:text; count:byte = 1);
+function createFile(var f:text; fn:string; allowAppend:boolean = false):boolean;
 begin
-	while count>0 do
+	result:=not fileExists(fn);
+	assign(f,fn);
+	if allowAppend and not result then
+		append(f)
+	else
 	begin
-		writeLn(f); dec(count);
+		rewrite(f);
+		writeLnStdOut(STDOUT_CREATE_FILE,[fn]);
 	end;
-end;
-
-procedure _write(var f:text; s:string; isW:boolean);
-begin
-	if isW then
-		write(f,s);
-{$IFDEF SLOW}
-	sleep(100);
-{$ENDIF}
-end;
-
-procedure _writeLn(var f:text; s:string; isW:boolean);
-begin
-	if isW then
-		writeLn(f,s);
-{$IFDEF SLOW}
-	sleep(100);
-{$ENDIF}
 end;
 
 procedure writeDEFINE(const lab:string; const comment:string = '');
@@ -41,10 +24,10 @@ var
 
 begin
 	case _type of
-	  1: CONST_TYPE:=CONF_CONST_SET_ORG_RELATIVE;
+		1: CONST_TYPE:=CONF_CONST_SET_ORG_RELATIVE;
 		2: CONST_TYPE:=CONF_CONST_SET_PAGE;
 	else
-	  CONST_TYPE:=CONF_CONST_SET_ABSOLUTE;
+		CONST_TYPE:=CONF_CONST_SET_ABSOLUTE;
 	end;
 	_writeLn(fconf,format(CONST_TYPE,prm),writeConf);
 end;
@@ -54,10 +37,15 @@ begin
 	_writeLn(fres,format(RESOURCE_ENTRY,[lab,path]),writeRes);
 end;
 
-procedure saveASM(fn:string; sepFiles:boolean);
+//
+//
+//
+
+procedure saveASM(fn:string);
 var
 	oorg:word;
 	dataOriginName:string;
+	i:byte;
 
 	procedure generateBlockHeader(labelName:string; len:word);
 	begin
@@ -66,7 +54,7 @@ var
 		writeLn(f,labelname);
 	end;
 
-	procedure generateByLines(labelname:string; var ary:array of byte; len:word);
+	procedure generateByLines(labelname:string; var ary:byteArray; len:word);
 	var
 		ofs:word;
 		out:string = '';
@@ -89,46 +77,56 @@ var
 		inc(org,len+1);
 	end;
 
-	procedure generateByLines4Data(labelname:string; var ary:array of byte; len:word);
+	procedure generateByLines4Data(labelName:string);
 	var
-		i,en:word;
+		i,len:word;
 
 	begin
+		len:=SMM.getSFXDataSize+SMM.getTABDataSize;
 		generateBlockHeader(labelName,len);
 
-		for en:=0 to 63 do
-			if (sfxUsage[en]<>-1) then
+		for i:=0 to 63 do
+			if (SMM.SFX[i]<>nil) then
 			begin
-				i:=sfxUsage[en];
-				generateByLines(format(LABEL_DATA_SFX_N,[i]),data[sfxptr[i]],sfxSizes[i]);
+				// i:=sfxUsage[en];
+				generateByLines(
+					format(LABEL_DATA_SFX_N,[i]),
+					byteArray(SMM.SFX[i]^.data^) {data[sfxptr[i]]},
+					SMM.SFX[i]^.size {sfxSizes[i]}
+				);
 			end;
 
-		for en:=0 to 63 do
-			if (tabUsage[en]<>-1) then
+		for i:=0 to 63 do
+			if (SMM.TAB[i]<>nil) then
 			begin
-				i:=tabUsage[en];
-				generateByLines(format(LABEL_DATA_TAB_N,[i]),data[tabptr[i]],tabSizes[i]);
+				// i:=tabUsage[en];
+				generateByLines(
+					format(LABEL_DATA_TAB_N,[i]),
+					byteArray(SMM.TAB[i]^.data^), {data[tabptr[i]]}
+					SMM.TAB[i]^.size {tabSizes[i]}
+				);
 			end;
 
 		_EOL(F);
 		inc(org,len);
 	end;
 
-	procedure generateWOLines(labelName:string; const flab:string; var ary:array of word; len:word; var usage:array of shortint; origin:string);
+	procedure generateWOLines(labelName:string; const flab:string; var data; len:word; origin:string);
 	var
 		id,ofs:word;
-		i:byte;
 		lab:string;
+		ary:PDataArray;
 
 	begin
 		generateBlockHeader(labelName,len*2);
+		ary:=@data;
 
 		if len=0 then exit;
+		ofs:=0;
 
 		for id:=0 to len-1 do
 		begin
-			ofs:=ary[id];
-			if ofs<>$ffff then
+			if ary[id]<>nil then
 			begin
 				if length(origin)<>0 then
 					lab:=origin+'.'
@@ -136,14 +134,15 @@ var
 					lab:='';
 				lab:=lab+format(flab,[id]);
 
-				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_OFFSET,[lab,ofs]))
+				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_OFFSET,[lab,ofs]));
+				inc(ofs,ary^[id]^.size);
 			end
 			else
 				write(f,format(INDENT+ASM_DTA+ASM_DTA_ADDRESS+INDENT+ASM_COMMENT+COMMENT_DATA_NOT_DEF,['$FFFF',labelName,id]));
 
-			for i:=0 to 63 do
-				if (usage[i]<>-1) and (usage[i]=id) then
-					write(f,format(INDENT+ASM_COMMENT+COMMENT_DATA_REINDEXED,[i,id]));
+			// for i:=0 to 63 do
+			// 	if (usage[i]<>-1) and (usage[i]=id) then
+			// 		write(f,format(INDENT+ASM_COMMENT+COMMENT_DATA_REINDEXED,[i,id]));
 			_EOL(f);
 		end;
 		_EOL(f);
@@ -153,19 +152,13 @@ var
 	function setOrigin(addr:word; subFn,resLabel:string):string;
 	var
 		o:string;
-		create:boolean;
 
 	begin
 		if (addr=0) then
 		begin
 			o:=concat(outPath,fn);
 			// create or continue primary file (origin file)
-			assign(f,o);
-			create:=not fileExists(o);
-			if create then
-				rewrite(f)
-			else
-				append(f);
+			createFile(f,o,true);
 			result:='';
 		end
 		else
@@ -174,16 +167,10 @@ var
 			o:=concat(outPath,subFn);
 
 			// create new file for block
-			assign(f,o);
-			rewrite(f);
-			create:=true;
-			// write resource info
+			createFile(f,o);
 			writeResource(resLabel,outPath+subFn);
 			result:=format(RESOURCE_PATH,[resLabel]);
 		end;
-
-		if create then
-			writeLnStdOut(STDOUT_CREATE_FILE,[o]);
 
 		// TODO: ustal za pomocą przełącznika, czy i jakie generować nagłówki dla plików MADASM
 		writeLn(f,format(INDENT+ASM_COMMENT+ASM_ORG,[org]));
@@ -204,23 +191,23 @@ var
 		close(f);
 	end;
 
-	procedure generateNoteTables();
-	var
-		i:byte;
-		ntab:array[1..4] of boolean;
+	// procedure generateNoteTables();
+	// var
+	// 	i:byte;
+	// 	ntab:array[1..4] of boolean;
 
-	begin
-		for i:=1 to 4 do ntab[i]:=false;
-		for i:=0 to 63 do
-		begin
-			if sfxnote[i]=$00 then ntab[1]:=true;
-			if sfxnote[i]=$40 then ntab[2]:=true;
-			if sfxnote[i]=$80 then ntab[3]:=true;
-			if sfxnote[i]=$C0 then ntab[4]:=true;
-		end;
-		for i:=1 to 4 do
-			if ntab[i] then generateByLines(format(LABEL_NOTE_TABLE_N,[i]),notetabs[0],64);
-	end;
+	// begin
+	// 	for i:=1 to 4 do ntab[i]:=false;
+	// 	for i:=0 to 63 do
+	// 	begin
+	// 		if sfxnote[i]=$00 then ntab[1]:=true;
+	// 		if sfxnote[i]=$40 then ntab[2]:=true;
+	// 		if sfxnote[i]=$80 then ntab[3]:=true;
+	// 		if sfxnote[i]=$C0 then ntab[4]:=true;
+	// 	end;
+	// 	for i:=1 to 4 do
+	// 		if ntab[i] then generateByLines(format(LABEL_NOTE_TABLE_N,[i]),notetabs[0],64);
+	// end;
 
 	procedure defineModulators();
 	var
@@ -229,15 +216,25 @@ var
 		mod_lfd,
 		mod_mfd,
 		mod_hfd:boolean;
+		SFX:TSFXData;
 
 	begin
 		mod_dfd:=false; mod_lfd:=false; mod_mfd:=false; mod_hfd:=false;
 		for i:=0 to 63 do
 		begin
-			if sfxmodes[i]=$00 then mod_hfd:=true;
-			if sfxmodes[i]=$01 then mod_mfd:=true;
-			if sfxmodes[i]=$02 then mod_lfd:=true;
-			if sfxmodes[i]=$03 then mod_dfd:=true;
+			write(stdout,i);
+			if SMM.SFX[i]=nil then
+			begin
+				writeLn(stdout,' is free');
+				continue;
+			end;
+
+			SFX:=SMM.SFX[i]^;
+			writeLn(stdout,' ',SFX.name,' ',sfx.mode^);
+			if sfx.mode^=$00 then mod_hfd:=true;
+			if sfx.mode^=$01 then mod_mfd:=true;
+			if sfx.mode^=$02 then mod_lfd:=true;
+			if sfx.mode^=$03 then mod_dfd:=true;
 		end;
 		if mod_dfd then writeDEFINE(DEFINE_MOD_DFD);
 		if mod_lfd then writeDEFINE(DEFINE_MOD_LFD_NLM);
@@ -246,6 +243,7 @@ var
 	end;
 
 begin
+		writeLn(stdout,SMM.getSFXDataSize);
 	temp_org:=0; oorg:=org;
 	NOTE_TABLE_ADDR:=NOTE_TABLE_PAGE shl 8;
 
@@ -264,19 +262,11 @@ begin
 
 	writeConf:=length(confFN)<>0;
 	if writeConf then
-	begin
-		// writeLn(outPath+confFN);
-		assign(fconf,outPath+confFN);
-		rewrite(fconf);
-	end;
+		createFile(fconf,outPath+confFN);
 
 	writeRes:=length(resFN)<>0;
 	if writeRes then
-	begin
-		// writeLn(outPath+resFn);
-		assign(fres,outPath+resFN);
-		rewrite(fres);
-	end;
+		createFile(fres,outPath+resFN);
 
 	if	(NOTE_TABLE_ADDR<$C000) and
 			(SFX_MODE_SET_ADDR<$C000) and
@@ -320,7 +310,7 @@ begin
 		dataOriginName:=setOrigin(SFX_DATA_ADDR,
 		                          dataFN,
 															CONST_SFX_DATA_ADDR);
-		generateByLines4Data(LABEL_DATA,data,topptr);
+		generateByLines4Data(LABEL_DATA);
 		restoreOrigin();
 	end
 	else
@@ -330,38 +320,39 @@ begin
 	          noteTabFN,
 						CONST_NOTE_TABLE_ADDR);
 	writeConfConst(CONST_PAGE,[CONST_NOTE_TABLE_PAGE,CONST_NOTE_TABLE_ADDR]);
-	generateByLines(LABEL_NOTE_TABLES,notetabs,256);
+	for i:=0 to 3 do
+		generateByLines(LABEL_NOTE_TABLES,SMM.notetab[i],256);
 //	generateNoteTables();
 	restoreOrigin();
 
 	setOrigin(SONG_ADDR,
 	          songTabFN,
 						CONST_SONG_ADDR);
-	generateByLines(LABEL_SONG_DATA,song,256);
+	generateByLines(LABEL_SONG_DATA,SMM.song,256);
 	restoreOrigin();
 
 	setOrigin(SFX_MODE_SET_ADDR,
 	          sfxmodesFN,
 						CONST_SFX_MODE_SET_ADDR);
-	generateByLines(LABEL_SFX_MODES_TABLE,sfxmodes,usedSFX);
+	generateByLines(LABEL_SFX_MODES_TABLE,SMM.SFXModTable,usedSFX);
 	restoreOrigin();
 
 	setOrigin(SFX_NOTE_SET_ADDR,
 	          sfxnotesFN,
 						CONST_SFX_NOTE_SET_ADDR);
-	generateByLines(LABEL_SFX_NOTES_TABLE,sfxnote,usedSFX);
+	generateByLines(LABEL_SFX_NOTES_TABLE,SMM.SFXNoteTable,usedSFX);
 	restoreOrigin();
 
 	setOrigin(SFX_TABLE_ADDR,
 	          sfxTabFN,
 						CONST_SFX_TABLE_ADDR);
-	generateWOLines(LABEL_SFX_TABLE,LABEL_DATA_SFX_N,sfxptr,usedSFX,SFXUsage,dataOriginName);
+	generateWOLines(LABEL_SFX_TABLE,LABEL_DATA_SFX_N,SMM.SFX,usedSFX,dataOriginName);
 	restoreOrigin();
 
 	setOrigin(TAB_TABLE_ADDR,
 	          tabTabFN,
 						CONST_TAB_TABLE_ADDR);
-	generateWOLines(LABEL_TAB_TABLE,LABEL_DATA_TAB_N,tabptr,usedTAB,TABUsage,dataOriginName);
+	generateWOLines(LABEL_TAB_TABLE,LABEL_DATA_TAB_N,SMM.TAB,usedTAB,dataOriginName);
 	restoreOrigin();
 
 	if (SFX_DATA_ADDR=0) then
@@ -369,7 +360,7 @@ begin
 		dataOriginName:=setOrigin(SFX_DATA_ADDR,
 		                          dataFN,
 															CONST_SFX_DATA_ADDR);
-		generateByLines4Data(LABEL_DATA,data,topptr);
+		generateByLines4Data(LABEL_DATA);
 		restoreOrigin();
 	end;
 

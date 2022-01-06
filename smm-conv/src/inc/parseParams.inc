@@ -16,25 +16,17 @@ var
 	end;
 
 	function getAddr(msg:string; var _val:word; def:word; var fileName:string; canFileSpec:boolean = true):boolean;
-	var	err,fnDelimPos:word;
+	var
+		err:word;
+		strArr:TStringArray;
 
 	begin
-		fnDelimPos:=0;
-		if canFileSpec then
-		begin
-			fnDelimPos:=pos(':',param);
-			if fnDelimPos>0 then
-			begin
-				fileName:=copy(param,fnDelimPos+1);
-				param:=copy(param,1,fnDelimPos-1); // extract address from parameter
-				// writeLn(stdout,fn,' ',param);
-			end;
-		end
-		else
-		begin
-			fileName:='';
-		end;
-		val(param,_val,err);
+		strArr:=param.split(':');
+		if length(strArr)>1 then param:=trim(strArr[1]) else param:=fileName;
+		if canFileSpec and (length(param)>0) then
+			filename:=trim(param);
+
+		val(trim(strArr[0]),_val,err);
 		result:=err=0;
 		if not result then
 		begin
@@ -47,7 +39,7 @@ var
 		else
 			if length(msg)>0 then
 				if canFileSpec and (length(fileName)>0) then
-					if fnDelimPos>0 then
+					if length(strArr)>1 then
 						writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_OUTPUT_FILENAME_SET,[msg,4,_val,fileName])
 					else
 						writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_OUTPUT_FILENAME,[msg,4,_val,fileName])
@@ -74,6 +66,29 @@ var
 			else
 				_val:=_val and $FF00;
 			writeLnStdOut(STDOUT_ADDRESS_SET+STDOUT_PAGE_ALIGN,[msg,4,_val]);
+		end;
+	end;
+
+	function determineSet(param:string; var _sfx,_tab:boolean):string;
+	var
+		strArr:TStringArray;
+		i:byte;
+
+	begin
+		strArr:=param.split(',');
+		i:=0; result:='';
+		while i<=length(strArr) do
+		begin
+			param:=lowerCase(trim(strArr[i]));
+			if param='sfxonly' then begin _sfx:=true; _tab:=false; result:=STDOUT_SFX_ONLY; break; end;
+			if param='tabonly' then begin _sfx:=false; _tab:=true; result:=STDOUT_TAB_ONLY; break; end;
+			if param='all' then begin _sfx:=true; _tab:=true; result:=STDOUT_ALL; break; end;
+
+			if param='sfxs' then
+				begin _sfx:=true; result:=result+param; continue; end
+			else if param='tabs' then
+				begin _tab:=true; result:=result+param; continue; end;
+			haltError(format(STDOUT_UNRECOGNIZED_OPTION,[param]));
 		end;
 	end;
 
@@ -134,7 +149,6 @@ begin
 		//
 		//
 
-		// TODO: Rozważ podanie nazwy pliku dla bloków danych!
 		if check('notetable:') or check('An:') then
 		begin
 			getAddrP(STDOUT_NOTE_TABLE_DATA,NOTE_TABLE_ADDR,0,noteTabFN,true);
@@ -199,50 +213,13 @@ begin
 
 		if check('reduce:') or check('R:') then
 		begin
-			if pos('sfxonly',param)=1 then
-			begin
-				SFXreduce:=true;
-				param:=STDOUT_SFX_ONLY;
-			end
-			else if pos('tabonly',param)=1 then
-			begin
-				TABreduce:=true;
-				param:=STDOUT_TAB_ONLY;
-			end
-			else if pos('all',param)=1 then
-			begin
-				SFXreduce:=true;
-				TABreduce:=true;
-				param:=STDOUT_ALL;
-			end
-			else
-				haltError('wrong reducing parameter');
-			writeLnStdOut(STDOUT_REDUCE_SET,[param]);
+			writeLnStdOut(STDOUT_REDUCE_SET,[determineSet(param,SFXReduce,TABReduce)]);
 			continue;
 		end;
 
 		if check('reindex:') or check('I:') then
 		begin
-			if pos('sfxonly',param)=1 then
-			begin
-				SFXreindex:=true;
-				param:=STDOUT_SFX_ONLY;
-			end
-			else if pos('tabonly',param)=1 then
-			begin
-				TABreindex:=true;
-				param:=STDOUT_TAB_ONLY;
-			end
-			else if pos('all',param)=1 then
-			begin
-				SFXreindex:=true;
-				TABreindex:=true;
-				param:=STDOUT_ALL;
-			end
-			else
-				haltError('wrong reindex parameter');
-
-			writeLnStdOut(STDOUT_REINDEX_SET,[param]);
+			writeLnStdOut(STDOUT_REDUCE_SET,[determineSet(param,SFXReindex,TABReindex)]);
 			continue;
 		end;
 
