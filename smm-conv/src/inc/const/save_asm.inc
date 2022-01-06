@@ -19,9 +19,9 @@ CONST
   COMMENT_SFX_SYNCAUDIOOUT             = 'this switch turn on buffer for POKEY data. Buffer is flush after processing all channels.';
   COMMENT_SFX_PLAYBACK                 = 'if you want use song player, leave this definition uncomment';
 
-  CONF_CONST_SET_ABSOLUTE              = '%-17s = $%.*x';
+  CONF_CONST_SET_ABSOLUTE              = '%-17s = $%.*x;';
   CONF_CONST_SET_ORG_RELATIVE          = '%-17s = '+CONST_SFX_ORG+' + $%.4x;';
-  CONF_CONST_SET_PAGE                  ='%-17s = hi(%s);';
+  CONF_CONST_SET_PAGE                  = '%-17s = hi(%s);';
 
 	LABEL_NOTE_TABLES                    = 'note_tables';
   LABEL_NOTE_TABLE_N                   = 'note_table_%d';
