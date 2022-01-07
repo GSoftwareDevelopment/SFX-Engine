@@ -1,1 +1,1 @@
-fpc -Mdelphi -v -O3s -Xs -FE./bin/ ./src/smm-conv.pas
+fpc -Mdelphi -v -O3s -Xs -Fu./lib/-FE./bin/ ./src/smm-conv.pas
