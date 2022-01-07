@@ -60,7 +60,6 @@ var
 
 	SFX_DATA_ADDR:word			= 0;
 
-// {$i ./inc/tfile.inc}
 {$i ./inc/const/stdout.inc}
 {$I ./inc/file_helpes.inc}
 
@@ -70,9 +69,7 @@ begin
 	halt(-1);
 end;
 
-// {$I ./inc/load_smm.inc}
 {$I ./inc/save_asm.inc}
-// {$I ./inc/optimize.inc}
 {$I ./inc/help.inc}
 {$I ./inc/parseParams.inc}
 
