@@ -7,6 +7,7 @@ function SMMReduceSFX(var SMM:TSMMFile):byte;
 function SMMReindexSFX(var SMM:TSMMFile):shortint;
 function SMMReduceTAB(var SMM:TSMMFile):byte;
 function SMMReindexTAB(var SMM:TSMMFile):shortint;
+function SMMReduceNoteTab(var SMM:TSMMFile):byte;
 
 implementation
 
@@ -195,6 +196,31 @@ begin
 		end;
 	end;
 	result:=1;
+end;
+
+function SMMReduceNoteTab(var SMM:TSMMFile):byte;
+var
+	i,id:byte;
+	ntab:array[1..4] of boolean;
+
+begin
+	for i:=1 to 4 do ntab[i]:=false;
+	for i:=0 to 63 do
+	begin
+		id:=SMM.SFXNoteTable[i];
+		case id of
+			$00:ntab[1]:=true;
+			$40:ntab[2]:=true;
+			$80:ntab[3]:=true;
+			$C0:ntab[4]:=true;
+		end;
+	end;
+	for i:=1 to 4 do
+		if not ntab[i] then
+		begin
+			freeMem(SMM.noteTable[i],64);
+			SMM.noteTable[i]:=nil;
+		end;
 end;
 
 end.
