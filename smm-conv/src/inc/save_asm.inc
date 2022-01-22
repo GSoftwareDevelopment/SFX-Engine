@@ -181,24 +181,6 @@ var
 		close(f);
 	end;
 
-	// procedure generateNoteTables();
-	// var
-	// 	i:byte;
-	// 	ntab:array[1..4] of boolean;
-
-	// begin
-	// 	for i:=1 to 4 do ntab[i]:=false;
-	// 	for i:=0 to 63 do
-	// 	begin
-	// 		if sfxnote[i]=$00 then ntab[1]:=true;
-	// 		if sfxnote[i]=$40 then ntab[2]:=true;
-	// 		if sfxnote[i]=$80 then ntab[3]:=true;
-	// 		if sfxnote[i]=$C0 then ntab[4]:=true;
-	// 	end;
-	// 	for i:=1 to 4 do
-	// 		if ntab[i] then generateByLines(format(LABEL_NOTE_TABLE_N,[i]),notetabs[0],64);
-	// end;
-
 	procedure defineModulators();
 	var
 		i:byte;
@@ -304,8 +286,13 @@ begin
 						CONST_NOTE_TABLE_ADDR);
 	writeConfConst(CONST_PAGE,[CONST_NOTE_TABLE_PAGE,CONST_NOTE_TABLE_ADDR]);
 	for i:=0 to 3 do
-		generateByLines(format(LABEL_NOTE_TABLE_n,[i]),SMM.notetab[i],64);
-//	generateNoteTables();
+		if SMM.noteTable[i]<>nil then
+			generateByLines(format(LABEL_NOTE_TABLE_n,[i]),SMM.noteTable[i]^,64)
+		else
+		begin
+			generateBlockHeader(format(LABEL_NOTE_TABLE_n,[i]),64);
+			writeLn(f,'	64:dta $00;');
+		end;
 	restoreOrigin();
 
 	setOrigin(SONG_ADDR,

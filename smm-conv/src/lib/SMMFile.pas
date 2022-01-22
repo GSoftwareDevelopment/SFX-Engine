@@ -65,7 +65,7 @@ type
 		songname: string[32];
 		tempo: byte;
 
-		notetab:array[0..3] of array[0..63] of byte;
+		noteTable:array[0..3] of PByteArray;
 		SFXModTable:array[0..63] of byte;
 		SFXNoteTable:array[0..63] of byte;
 		song:array[0..255] of byte;
@@ -148,10 +148,8 @@ begin
 	version:=$00;
 	tempo:=255;
 
-	for i:=0 to 3 do
-	begin
-		for j:=0 to 63 do notetab[i][j]:=0;
-	end;
+	for i:=0 to 3 do noteTable[i]:=nil;
+
 	for j:=0 to 255 do song[j]:=0;
 
 	for i:=0 to 63 do
@@ -196,8 +194,9 @@ Begin
 
   If f.IOErr>3 Then exit;
 
+	getMem(noteTable[noteTabId],64);
   For i:=0 To 63 Do
-    notetab[noteTabId][i]:=IOBuf[NOTETABnameLength+i];
+    noteTable[noteTabId]^[i]:=IOBuf[NOTETABnameLength+i];
 End;
 
 Procedure TSMMFile.loadDefinition(isSFX:boolean; nameLength:byte);
