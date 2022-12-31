@@ -1,6 +1,6 @@
 # SFX-Engine
 
-Autorski silnik muzyczny dla 8-bitowego ATARI, pozwalający odtwarzać pliki muzyczne zapisan w programie **SFX Music Maker (aka SFX-Tracker)**.
+Autorski silnik muzyczny dla 8-bitowego ATARI, pozwalający odtwarzać pliki muzyczne zapisane w programie **SFX Music Maker (aka SFX-Tracker)**.
 
 ## Co jest w repozytorium?
 
@@ -17,3 +17,6 @@ Program użytkowy dla systemów **Windows/Linux**, pozwalający skonwertować bi
 Program należy skompilować dla danej platformy z użyciem kompilatora FreePascal.
 
 ---
+
+## Jeśli podoba Ci się...
+Kup mi kawę :) [![ByMeCaffee](../../../GSoftwareDevelopment/raw/main/bmc.png)](https://www.buymeacoffee.com/PeBe)
